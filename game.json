@@ -1,0 +1,17 @@
+{
+  "id": "starship-overdrive",
+  "title": "Starship Overdrive",
+  "tagline": "Shooter espacial arcade: monte sua nave e sobreviva.",
+  "description": "Pilote uma nave, desvie dos ataques e construa sua build de armas durante a partida.\nAs ondas nunca acabam: até onde você chega?",
+  "cover": "cover.webp",
+  "icon": "icon.webp",
+  "version": "0.5.2",
+  "status": "draft",
+  "tags": ["arcade", "shooter", "espacial", "sobrevivência"],
+  "platforms": ["desktop", "mobile"],
+  "orientation": "portrait",
+  "approxDownloadMB": 1,
+  "sdk": 1,
+  "ads": { "interstitial": false, "rewarded": false, "banner": [] },
+  "menuSafeTop": 52
+}

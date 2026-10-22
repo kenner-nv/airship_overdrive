@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>Starship Overdrive — K101</title>
+  <meta name="description" content="Shooter espacial arcade de sobrevivência infinita. Monte sua nave, evolua suas armas e vá o mais longe que puder.">
+  <meta name="theme-color" content="#04050d">
+
+  <!-- Identificação para a plataforma -->
+  <meta name="k101-game" content="starship-overdrive">
+  <meta name="k101-safe-top" content="52">
+
+  <!-- Prévia de link (estático: redes sociais não executam JS) -->
+  <link rel="canonical" href="https://k101.com.br/jogos/starship-overdrive/">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Starship Overdrive">
+  <meta property="og:description" content="Shooter espacial arcade de sobrevivência infinita. Monte sua nave e vá o mais longe que puder.">
+  <meta property="og:image" content="https://k101.com.br/jogos/starship-overdrive/cover.webp">
+  <meta property="og:url" content="https://k101.com.br/jogos/starship-overdrive/">
+
+  <link rel="icon" href="/favicon.ico">
+  <link rel="stylesheet" href="/shared/tema.css">
+  <!-- CSS mínimo da tela de carregamento: aparece antes de qualquer script -->
+  <style>
+    html,body{margin:0;height:100%;background:#04050d}
+    #ov-loading{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;color:#fff;font:800 16px system-ui,sans-serif;background:#04050d}
+    #ov-loading[hidden]{display:none}
+  </style>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/hud.css">
+
+  <!-- SDK da plataforma (menu flutuante, popup de saída). Módulo: não bloqueia o carregamento. -->
+  <script type="module" src="/shared/k101.js"></script>
+</head>
+<body>
+  <canvas id="side" aria-hidden="true"></canvas>
+  <div id="stage" data-state="LOADING">
+    <canvas id="game"></canvas>
+
+    <!-- HUD (abaixo da reserva do menu K101: var(--k101-safe-top)) -->
+    <div id="hud" hidden>
+      <div class="hud-l">
+        <div class="hp"><div class="hp-fill" id="hp-fill"></div><span id="hp-text">100/100</span></div>
+        <div class="dodge" id="special-meter"><div id="dodge-fill"></div></div>
+      </div>
+      <div class="hud-r"><div id="h-score">0</div><div id="h-coins">0 ★</div><div id="h-wave">ONDA 1</div></div>
+    </div>
+    <div id="banner" hidden></div>
+    <div id="tip" hidden><b>Toque na nave</b> para equipar sua primeira arma</div>
+    <div id="toast" hidden></div>
+
+    <!-- CARREGAMENTO (já nasce visível) -->
+    <section id="ov-loading" class="ov">
+      <h1 class="title"><span>STARSHIP</span><span>OVERDRIVE</span></h1>
+      <div id="loading-progress">
+        <p id="loading-text">Carregando…</p>
+        <div class="loadbar"><div id="loading-fill"></div></div>
+      </div>
+      <div id="loading-error" hidden>
+        <p>Não foi possível carregar o jogo.</p>
+        <button type="button" class="btn" id="btn-reload" onclick="location.reload()">Tentar de novo</button>
+        <a class="btn btn2" href="/">Voltar ao catálogo</a>
+      </div>
+    </section>
+
+    <!-- MENU INICIAL -->
+    <section id="ov-main" class="ov" hidden>
+      <h1 class="title"><span>STARSHIP</span><span>OVERDRIVE</span></h1>
+      <p class="tag">Sobreviva. Construa. Supere seu recorde.</p>
+      <div class="col">
+        <button type="button" class="btn big" id="btn-play">JOGAR</button>
+        <button type="button" class="btn btn2" id="btn-records">Recordes</button>
+        <div class="audio"><button type="button" class="btn btn2 small" id="btn-mute">Som: ligado</button><input id="vol" type="range" min="0" max="100" aria-label="Volume"></div>
+      </div>
+      <ul class="how">
+        <li>Mova o <b>mouse / dedo</b> para pilotar. Os tiros são automáticos.</li>
+        <li><b>Clique / toque</b> na arena para abrir o menu de construção.</li>
+        <li>Cada nave tem uma <b>habilidade especial</b>: esquiva, disparo carregado ou tiros que cancelam os inimigos.</li>
+        <li>Derrote inimigos e <b>passe sobre as estrelas ★</b> para ter dinheiro de construção.</li>
+      </ul>
+    </section>
+
+    <!-- ESCOLHA DA NAVE -->
+    <section id="ov-ships" class="ov" hidden>
+      <h2>ESCOLHA SUA NAVE</h2>
+      <div class="carousel" id="carousel">
+        <button type="button" class="arrow l" id="ship-prev" aria-label="Nave anterior">‹</button>
+        <div class="track" id="ship-list"></div>
+        <button type="button" class="arrow r" id="ship-next" aria-label="Próxima nave">›</button>
+      </div>
+      <div class="dots" id="ship-dots"></div>
+      <button type="button" class="btn big" id="btn-ship-pick">ESCOLHER</button>
+      <button type="button" class="btn btn2" id="btn-ships-back">Voltar</button>
+    </section>
+
+    <!-- RECORDES LOCAIS -->
+    <section id="ov-records" class="ov" hidden>
+      <h2>RECORDES</h2>
+      <div id="records-body" class="card records"></div>
+      <button type="button" class="btn btn2" id="btn-records-back">Voltar</button>
+    </section>
+
+    <!-- PAUSA (popup de saída, anúncio, aba oculta) -->
+    <section id="ov-pause" class="ov dim" hidden>
+      <h2>PAUSADO</h2>
+      <button type="button" class="btn big" id="btn-resume">CONTINUAR</button>
+    </section>
+
+    <!-- MENU DE CONSTRUÇÃO -->
+    <section id="ov-build" class="ov build" hidden>
+      <header class="b-head">
+        <div class="b-title">CONSTRUÇÃO <small>jogo pausado</small></div>
+        <div class="b-coins"><b id="b-coins">0</b> ★</div>
+        <button type="button" class="icon-btn" id="b-mute" aria-label="Som">🔊</button>
+      </header>
+      <div class="b-ship" id="b-ship"><canvas id="b-canvas"></canvas></div>
+      <div class="b-panel" id="b-panel"></div>
+      <footer><button type="button" class="btn big" id="b-close">VOLTAR À PARTIDA</button></footer>
+    </section>
+
+    <!-- GAME OVER -->
+    <section id="ov-end" class="ov dim" hidden>
+      <h2>NAVE DESTRUÍDA</h2>
+      <div id="end-best" class="best" hidden>NOVO RECORDE!</div>
+      <div class="card endcard">
+        <div class="big-num" id="end-score">0</div><div class="lbl">pontos</div>
+        <div class="grid"><div><b id="end-wave">1</b><span>onda</span></div><div><b id="end-time">0:00</b><span>tempo</span></div><div><b id="end-kills">0</b><span>abates</span></div></div>
+        <div class="rank" id="end-rank"></div>
+      </div>
+      <div class="col">
+        <button type="button" class="btn big" id="btn-retry">JOGAR DE NOVO</button>
+        <button type="button" class="btn btn2" id="btn-change">Trocar de nave</button>
+        <button type="button" class="btn btn2" id="btn-menu">Menu principal</button>
+      </div>
+    </section>
+  </div>
+
+  <div id="rotate"><p>Gire o aparelho para a vertical</p></div>
+  <script type="module" src="js/boot.js"></script>
+</body>
+</html>
