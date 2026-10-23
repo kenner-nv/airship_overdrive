@@ -86,23 +86,10 @@ export class Ui {
     on("btn-ships-back", () => g.setState("MAIN"));
     on("btn-records-back", () => g.setState("MAIN"));
     on("btn-resume", () => g.resume());
-    // sair da partida: o 1º toque pede confirmação (3 s), o 2º volta ao menu principal
-    this.quitBtns = ["btn-pause-quit", "b-quit"].map($);
-    for (const b of this.quitBtns) {
-      let timer = 0;
-      b.addEventListener("click", () => {
-        if (!b.classList.contains("confirm")) {
-          this.resetQuit();
-          b.classList.add("confirm"); b.textContent = "Sair? Toque de novo";
-          Sound.play("click");
-          timer = setTimeout(() => this.resetQuit(), 3000);
-          b._timer = timer;
-          return;
-        }
-        this.resetQuit();
-        g.abandonRun();
-      });
-    }
+    // sair da partida: caixa de mensagem no centro da tela ("Deseja voltar ao menu principal?")
+    for (const id of ["btn-pause-quit", "b-quit"]) on(id, () => { Sound.play("click"); this.confirm("Deseja voltar ao menu principal?", () => g.abandonRun()); });
+    on("dlg-yes", () => { const fn = this.dlgFn; this.closeConfirm(); fn?.(); });
+    on("dlg-no", () => { Sound.play("click"); this.closeConfirm(); });
     on("btn-retry", () => g.startRun(g.lastShipId));
     on("btn-change", () => { this.renderShips(); g.setState("SHIPSELECT"); });
     on("btn-menu", () => g.setState("MAIN"));
@@ -136,12 +123,17 @@ export class Ui {
     $("vol").value = Math.round(Sound.volume * 100);
   }
 
-  resetQuit() {
-    for (const b of this.quitBtns) { clearTimeout(b._timer); b.classList.remove("confirm"); b.textContent = b.dataset.label; }
+  // Caixa de confirmação no centro da tela: `onYes` só roda se o jogador tocar em "Sim".
+  confirm(msg, onYes) {
+    $("dlg-msg").textContent = msg;
+    this.dlgFn = onYes;
+    $("ov-confirm").hidden = false;
   }
 
+  closeConfirm() { this.dlgFn = null; $("ov-confirm").hidden = true; }
+
   onState(s, prev) {
-    this.resetQuit();
+    this.closeConfirm();
     const map = { LOADING: "loading", MAIN: "main", SHIPSELECT: "ships", RECORDS: "records", PAUSED: "pause", BUILD: "build", GAMEOVER: "end" };
     for (const [k, el] of Object.entries(this.ov)) el.hidden = map[s] !== k;
     this.hud.root.hidden = !["PLAYING", "PAUSED", "DYING"].includes(s);
@@ -183,7 +175,7 @@ export class Ui {
       return `<div class="slide" data-ship="${id}">
         <div class="hero"><canvas width="360" height="360" data-sprite="${d.sprite}"></canvas></div>
         <h3>${esc(d.name)} <small>${esc(d.tagline)}</small></h3>
-        <div class="stats"><label>Vida${bar(d.hp / 180)}</label><label>Regeneração${bar((d.hp * (d.regenPct ?? 0)) / 3.6)}</label><label>Velocidade${bar(d.speed / 780)}</label><label>Dano${bar(d.damageMod / 1.25)}</label><label>Slots para armas<span>${"●".repeat(d.slots.length)}</span></label></div>
+        <div class="stats"><label>Vida${bar(d.hp / 180)}</label><label>Velocidade${bar(d.speed / 780)}</label><label>Dano${bar(d.damageMod / 1.25)}</label><label>Slots para armas<span>${"●".repeat(d.slots.length)}</span></label></div>
         <p class="sp"><b>${esc(d.specialName)}:</b> ${esc(d.specialDesc)}</p>
       </div>`;
     }).join("");

@@ -3,12 +3,15 @@
    - Abre com clique/toque curto na arena (Input.js chama game.openBuild()).
    - A nave aparece centralizada com os slots; o botão NAVE fica colado no casco.
    - Slot vazio → lista de armas para instalar. Slot ocupado → lista dos 4 ramos da arma.
-   - Slot traseiro (losango verde) → módulo de suporte: instalar (escudo / drones) ou remover.
+   - Slot traseiro (losango verde) → módulo de suporte: instalar, melhorar (3 níveis) ou remover.
+   - Remover arma/módulo pede confirmação numa caixa de mensagem no centro da tela (Ui.confirm).
+   - Armas e módulos sempre aparecem em ordem de custo (menor → maior).
    - Botão NAVE → lista dos 4 ramos da nave. Cada ramo mostra seus 3 níveis; o próximo nível
      fica disponível para compra e, ao comprar, o seguinte é liberado (UpgradeSystem: requires).
    ========================================================================== */
 import { WEAPONS, WEAPON_ORDER } from "./data/Weapons.js";
-import { SUPPORTS, SUPPORT_ORDER } from "./data/Supports.js";
+import { SUPPORTS, SUPPORT_ORDER, upgradeCost } from "./data/Supports.js";
+import { centerSlot } from "./SupportSystem.js";
 import { nextNode, branchLevel } from "./data/Upgrades.js";
 import { Art } from "./Art.js";
 import { Sound } from "./Audio.js";
@@ -22,7 +25,6 @@ export class BuildMenu {
     this.game = game;
     this.root = root;
     this.sel = null;          // { type: "slot", slotId } | { type: "ship" } | null
-    this.rm = false;          // aguardando confirmação de "remover arma"
     this.el = { coins: $(root, "#b-coins"), box: $(root, "#b-ship"), canvas: $(root, "#b-canvas"), panel: $(root, "#b-panel") };
     $(root, "#b-close").addEventListener("click", () => game.closeBuild());
     this.el.box.addEventListener("click", (e) => {
@@ -34,12 +36,21 @@ export class BuildMenu {
     this.el.panel.addEventListener("click", (e) => this.onPanelClick(e));
   }
 
-  open() { this.sel = null; this.rm = false; this.relayout(); }
+  open() { this.sel = null; this.relayout(); }
 
-  relayout() { this.layoutShip(); this.refresh(); }
+  relayout() { this.layoutShip(); this.refresh(); this.spaceShipBtn(); }
+
+  // Afasta o botão NAVE da caixa de informações: a distância entre os dois fica 3× a original (+200%).
+  spaceShipBtn() {
+    const box = this.el.box, btn = box.querySelector(".b-shipbtn");
+    if (!btn) return;
+    box.style.marginBottom = "0px";
+    const d = this.el.panel.getBoundingClientRect().top - btn.getBoundingClientRect().bottom;   // distância original
+    box.style.marginBottom = `${Math.round(Math.max(0, d) * 2)}px`;
+  }
 
   select(target) {
-    this.sel = target; this.rm = false;
+    this.sel = target;
     Sound.play("click");
     this.refresh();
     this.el.panel.scrollTop = 0;
@@ -130,8 +141,9 @@ export class BuildMenu {
   // Armas para instalar: grade de cards em 2 colunas (ícone grande, nome, custo).
   installHtml(slot) {
     const g = this.game;
-    const cards = WEAPON_ORDER.map((id) => {
-      const w = WEAPONS[id], cost = g.weapons.installCost(id), ok = g.currency.canAfford(cost);
+    const ordered = WEAPON_ORDER.map((id) => ({ id, cost: g.weapons.installCost(id) })).sort((a, b) => a.cost - b.cost);   // sempre por custo
+    const cards = ordered.map(({ id, cost }) => {
+      const w = WEAPONS[id], ok = g.currency.canAfford(cost);
       return `<div class="gcard${ok ? "" : " poor"}">
         <img class="g-ico" alt="" src="${Art.iconURL(id)}">
         <b>${esc(w.name)}</b><span class="g-d">${esc(w.role)}</span><em>${esc(w.diff)}</em>
@@ -141,11 +153,11 @@ export class BuildMenu {
     return `<h3>${esc(slot.def.label)} <small>vazio</small></h3><p class="sub">Escolha uma arma para instalar neste slot.</p><div class="grid2">${cards}</div>`;
   }
 
-  // Módulo de suporte: lista para instalar (mesmo estilo dos cards de arma)
+  // Módulo de suporte: lista para instalar (mesmo estilo dos cards de arma), do mais barato ao mais caro
   supportInstallHtml() {
-    const g = this.game, cost = g.supports.installCost(), ok = g.currency.canAfford(cost);
-    const cards = SUPPORT_ORDER.map((id) => {
-      const m = SUPPORTS[id];
+    const g = this.game;
+    const cards = [...SUPPORT_ORDER].sort((a, b) => SUPPORTS[a].cost - SUPPORTS[b].cost).map((id) => {
+      const m = SUPPORTS[id], cost = g.supports.installCost(id), ok = g.currency.canAfford(cost);
       return `<div class="gcard${ok ? "" : " poor"}">
         <img class="g-ico" alt="" src="${Art.iconURL(id)}">
         <b>${esc(m.name)}</b><span class="g-d">${esc(m.role)}</span><em>${esc(m.diff)}</em>
@@ -156,16 +168,34 @@ export class BuildMenu {
   }
 
   supportHtml() {
-    const sup = this.game.supports, m = sup.def, st = sup.stats;
-    const cd = `${m.cooldown} s`;
+    const g = this.game, sup = g.supports, m = sup.def, st = sup.stats;
+    const cd = `${f1(st.cooldown)} s`;
     const chips = this.chips(({
-      shield: [["Absorve", `${st.charges} tiros`], ["Colisão", "destrói"], ["Recarga", cd]],
-      attackDrone: [["Dano", f1(st.damage)], ["Cadência", `${f1(1 / st.interval)}/s`], ["Alcance", Math.round(st.range)], ["Recarga", cd]],
-      healDrone: [["Cura", `${f1(st.healPerSec * 100)}%/s`], ["Total", `${Math.round(st.healCap * 100)}% da vida`], ["Recarga", cd]],
+      shield: [["Absorve", `${st.charges} tiros`], ["Colisão", st.ramCost >= st.charges ? "destrói" : `${st.ramCost} ${st.ramCost > 1 ? "cargas" : "carga"}`], ["Recarga", cd]],
+      attackDrone: [["Dano", `mín. ${f1(st.damage * st.damageMul)}`], ["Cadência", `${f1(1 / st.interval)}/s`], ["Alcance", Math.round(st.range)], ["Resiste", `${st.hp} tiros`], st.drones > 1 ? ["Drones", st.drones] : null, ["Recarga", cd]],
+      healDrone: [["Cura", `${f1(st.healPerSec * 100)}%/s`], ["Total", `${Math.round(st.healCap * 100)}% da vida`], st.drones > 1 ? ["Drones", st.drones] : null, ["Recarga", cd]],
       magnet: [["Duração", `${f1(st.duration)} s`], ["Alcance", "arena toda"], ["Recarga", cd]],
+      hologram: [["Vida", `${Math.round(st.hpMul * 100)}% da nave`], ["Dano", `${Math.round(st.dmgMul * 100)}% da arma`], ["Armas", st.allSlots ? "todos os slots" : "slot central"], ["Recarga", cd]],
     })[m.kind] ?? []);
-    const status = sup.fx ? "Em ação" : sup.cd > 0 ? `Recarregando: ${Math.ceil(sup.cd)} s` : m.kind === "healDrone" ? "Pronto: sai quando a nave perder vida" : "Pronto";
-    return `<div class="w-head"><img alt="" src="${Art.iconURL(m.id)}"><div><h3>${esc(m.name)} <small>suporte</small></h3>${chips}<p class="sub">${esc(m.diff)}.<br><b class="sp">${status}</b></p></div></div><button type="button" class="btn btn2 small rm${this.rm ? " confirm" : ""}" data-sremove>${this.rm ? "Confirmar: perder este módulo" : "Remover módulo"}</button>`;
+    let status = sup.fx ? "Em ação" : sup.cd > 0 ? `Recarregando: ${Math.ceil(sup.cd)} s` : m.kind === "healDrone" ? "Pronto: sai quando a nave perder vida" : "Pronto";
+    if (m.kind === "hologram") {
+      const cs = centerSlot(g.weapons.slotList);
+      if (!st.allSlots && !cs?.weaponId) status += " · slot central sem arma: o clone não atira";
+    }
+    return `<div class="w-head"><img alt="" src="${Art.iconURL(m.id)}"><div><h3>${esc(m.name)} <small>suporte</small></h3>${chips}<p class="sub">${esc(m.diff)}.<br><b class="sp">${esc(status)}</b></p></div></div>${this.supportLevelsHtml()}<button type="button" class="btn btn2 small rm" data-sremove>Remover módulo</button>`;
+  }
+
+  // Melhorias do módulo: 3 níveis em sequência (o próximo só depois do anterior). Cada nível melhora vários atributos de uma vez.
+  supportLevelsHtml() {
+    const g = this.game, sup = g.supports, m = sup.def;
+    const rows = m.levels.map((lv, i) => {
+      const owned = i < sup.level, next = i === sup.level, cost = upgradeCost(m.id, i), ok = next && g.currency.canAfford(cost);
+      const btn = owned ? `<div class="maxed">✓</div>` : next ? `<button type="button" class="btn buy" data-supgrade="1" ${ok ? "" : "disabled"}>${cost} ★</button>` : `<div class="lv-cost">${cost} ★</div>`;
+      return `<div class="lvrow${owned ? " own" : next ? " nxt" : " lock"}">
+        <img class="g-ico br" alt="" src="${Art.urlOf(`branch.${lv.icon}`, 92, true)}">
+        <div class="lv-i"><b>Nível ${i + 1} · ${esc(lv.name)}</b><span>${esc(lv.desc)}</span></div>${btn}</div>`;
+    }).join("");
+    return `<div class="lvlist">${rows}</div>`;
   }
 
   chips(list) { return `<div class="chips">${list.filter(Boolean).map(([k, v]) => `<span><i>${esc(k)}</i>${esc(v)}</span>`).join("")}</div>`; }
@@ -179,7 +209,7 @@ export class BuildMenu {
       s.blast > 0 ? [w.kind === "pulse" ? "Raio" : "Explosão", Math.round(s.blast)] : null,
       s.homing > 0 ? ["Rastreio", "sim"] : null,
     ]);
-    return `<div class="w-head"><img alt="" src="${Art.iconURL(w.id)}"><div><h3>${esc(w.name)} <small>${esc(slot.def.label)}</small></h3>${chips}</div></div>${this.branchesHtml({ type: "slot", slotId: slot.def.id })}<button type="button" class="btn btn2 small rm${this.rm ? " confirm" : ""}" data-remove>${this.rm ? "Confirmar: perder esta arma" : "Remover arma"}</button>`;
+    return `<div class="w-head"><img alt="" src="${Art.iconURL(w.id)}"><div><h3>${esc(w.name)} <small>${esc(slot.def.label)}</small></h3>${chips}</div></div>${this.branchesHtml({ type: "slot", slotId: slot.def.id })}<button type="button" class="btn btn2 small rm" data-remove>Remover arma</button>`;
   }
 
   shipHtml() {
@@ -215,7 +245,7 @@ export class BuildMenu {
   // O ramo "spe" (habilidade especial) tem um ícone por nave. Arte em Art.js (chaves branch.*).
   branchIcon(b) {
     const key = b.id === "spe" ? `branch.spe.${this.game.ship.def.special}` : `branch.${b.id}`;
-    const url = Art.urlOf(key, 92);
+    const url = Art.urlOf(key, 92, true);      // cinza bem claro, sem cores
     return url ? `<img class="g-ico br" alt="" src="${url}">` : "";
   }
 
@@ -236,21 +266,29 @@ export class BuildMenu {
       if (r.ok) g.ui.toast(`${SUPPORTS[id].name} instalado`);
       return this.refresh();
     }
-    if (e.target.closest("[data-sremove]") && this.sel?.type === "support") {
-      if (!this.rm) { this.rm = true; Sound.play("click"); return this.refresh(); }
-      const r = g.supports.remove();
-      this.rm = false;
-      Sound.play(r.ok ? "deny" : "click");
-      if (r.ok) g.ui.toast("Módulo removido");
+    const up = e.target.closest("[data-supgrade]");
+    if (up && this.sel?.type === "support" && !up.disabled) {
+      const r = g.supports.upgrade();
+      Sound.play(r.ok ? "buy" : "deny");
+      if (r.ok) g.ui.toast(`${r.node.name} adquirido`);
       return this.refresh();
     }
+    if (e.target.closest("[data-sremove]") && this.sel?.type === "support") {
+      return g.ui.confirm("Deseja remover esse módulo?", () => {
+        const r = g.supports.remove();
+        Sound.play(r.ok ? "deny" : "click");
+        if (r.ok) g.ui.toast("Módulo removido");
+        this.refresh();
+      });
+    }
     if (e.target.closest("[data-remove]") && this.sel?.type === "slot") {
-      if (!this.rm) { this.rm = true; Sound.play("click"); return this.refresh(); }
-      const r = g.weapons.remove(this.sel.slotId);
-      this.rm = false;
-      Sound.play(r.ok ? "deny" : "click");
-      if (r.ok) g.ui.toast("Arma removida");
-      return this.refresh();
+      const slotId = this.sel.slotId;
+      return g.ui.confirm("Deseja remover essa arma?", () => {
+        const r = g.weapons.remove(slotId);
+        Sound.play(r.ok ? "deny" : "click");
+        if (r.ok) g.ui.toast("Arma removida");
+        this.refresh();
+      });
     }
     const buy = e.target.closest("[data-buy]");
     if (buy && this.sel && !buy.disabled) {

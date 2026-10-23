@@ -6,6 +6,7 @@ import { Art, PALETTE } from "./Art.js";
 import { WEAPONS } from "./data/Weapons.js";
 import { SUPPORTS } from "./data/Supports.js";
 import { CONFIG } from "./data/Config.js";
+import { centerSlot } from "./SupportSystem.js";
 
 const LAYERS = [
   { count: 38, speed: 16, size: 1.1, alpha: 0.35 },
@@ -294,8 +295,7 @@ export class Renderer {
       ctx.globalAlpha = 1;
     }
 
-    const d = sup.drone;
-    if (d) {
+    for (const d of sup.drones) {
       const col = sup.def.color, key = `support.${d.kind}`, k = Math.min(1, d.t / 0.35);
       const bob = Math.sin(d.bob * 5) * 1.6;
       if (d.kind === "healDrone" && d.healing) {                     // raio de cura até a nave
@@ -306,8 +306,89 @@ export class Renderer {
       }
       ctx.globalAlpha = 0.25; ctx.fillStyle = col;                    // halo
       ctx.beginPath(); ctx.arc(d.x, d.y + bob, 15 * k, 0, 6.2832); ctx.fill(); ctx.globalAlpha = 1;
-      Art.draw(ctx, key, d.x, d.y + bob, d.kind === "attackDrone" ? d.aim : 0, 0.35 + 0.65 * k, 1);
+      ctx.globalAlpha = d.flash > 0 && Math.floor(g.clock * 30) % 2 ? 0.4 : 1;                // pisca ao levar dano
+      Art.draw(ctx, key, d.x, d.y + bob, d.kind === "attackDrone" ? d.aim : 0, 0.35 + 0.65 * k, ctx.globalAlpha);
+      ctx.globalAlpha = 1;
       ctx.setTransform(S, 0, 0, S, 0, 0);
     }
+    if (sup.clone) this.drawClone(ctx, sup.clone);
+  }
+
+  // Versão "holograma" do sprite da nave (cache): tingido de azul, com linhas de varredura e contorno brilhante.
+  holoSprite(key, color) {
+    this.holo ??= new Map();
+    let cv = this.holo.get(key);
+    if (cv) return cv;
+    const sp = Art.get(key), K = 2, pad = 3;
+    cv = document.createElement("canvas");
+    cv.width = Math.ceil(sp.w * K) + pad * 2; cv.height = Math.ceil(sp.h * K) + pad * 2;
+    const c = cv.getContext("2d");
+    c.drawImage(sp.img, pad, pad, sp.w * K, sp.h * K);
+    c.globalCompositeOperation = "source-atop";
+    c.fillStyle = color; c.globalAlpha = 0.72; c.fillRect(0, 0, cv.width, cv.height);     // tinge tudo de azul
+    c.globalAlpha = 0.25; c.fillStyle = "#ffffff"; c.fillRect(0, 0, cv.width, cv.height);
+    c.globalCompositeOperation = "destination-out"; c.globalAlpha = 0.5;                  // linhas de varredura
+    for (let y = 0; y < cv.height; y += 4) c.fillRect(0, y, cv.width, 1.6);
+    c.globalAlpha = 1; c.globalCompositeOperation = "source-over";
+    cv.pad = pad / K;
+    this.holo.set(key, cv);
+    return cv;
+  }
+
+  // Clone holográfico: nave azul translúcida, com cintilação, faixa de varredura, falhas (glitch) e a(s) arma(s) acopladas.
+  drawClone(ctx, c) {
+    const g = this.game, ship = g.ship, def = ship.def, sup = g.supports, col = sup.def.color, t = g.clock;
+    const sp = Art.get(def.sprite), cv = this.holoSprite(def.sprite, col), pad = cv.pad;
+    const appear = Math.min(1, c.t / 0.45), flick = 0.62 + 0.18 * Math.sin(t * 17 + 1.3) + (Math.sin(t * 53) > 0.93 ? -0.25 : 0);
+    let alpha = Math.max(0.25, flick) * appear;
+    if (c.iframes > 0) alpha *= Math.floor(t * 18) % 2 ? 0.5 : 1;
+    const w = sp.w + pad * 2, h = sp.h + pad * 2;
+    ctx.save();
+    ctx.translate(c.x, c.y);
+    ctx.transform(1 - CONFIG.ship.leanSqueeze * Math.abs(c.lean), -c.lean * CONFIG.ship.leanTilt, 0, 1, 0, 0);
+    ctx.scale(1, 0.4 + 0.6 * appear);                                                       // "liga" verticalmente ao aparecer
+    // chamas dos motores (azuis)
+    ctx.fillStyle = col; ctx.globalAlpha = alpha * 0.8;
+    for (const en of def.engines) {
+      const len = 8 + Math.sin(t * 40 + en.x) * 3;
+      ctx.beginPath(); ctx.moveTo(en.x - 3, en.y); ctx.lineTo(en.x + 3, en.y); ctx.lineTo(en.x, en.y + len); ctx.closePath(); ctx.fill();
+    }
+    // brilho externo (cópia maior e fraca) + corpo
+    ctx.globalAlpha = alpha * 0.28;
+    ctx.drawImage(cv, -w * 0.54, -h * 0.54, w * 1.08, h * 1.08);
+    ctx.globalAlpha = alpha;
+    const glitch = Math.sin(t * 7.3) > 0.9 ? Math.sin(t * 91) * 3 : 0;                      // às vezes, uma fatia desliza de lado
+    if (glitch) {
+      const y0 = -h / 2 + ((t * 40) % 1) * h * 0.6, hh = h * 0.18;
+      ctx.drawImage(cv, 0, (y0 + h / 2) * 2, cv.width, hh * 2, -w / 2 + glitch, y0, w, hh);
+    }
+    ctx.drawImage(cv, -w / 2, -h / 2, w, h);
+    // faixa de varredura que sobe e desce
+    const band = ((t * 0.9) % 1) * h - h / 2;
+    ctx.save(); ctx.beginPath(); ctx.rect(-w, band, w * 2, 5); ctx.clip();
+    ctx.globalCompositeOperation = "lighter"; ctx.globalAlpha = alpha * 0.9;
+    ctx.drawImage(cv, -w / 2, -h / 2, w, h);
+    ctx.restore();
+    // armas do clone: só o ícone de cada slot ativo, em azul
+    const st = sup.stats, slots = st.allSlots ? g.weapons.slotList : [centerSlot(g.weapons.slotList)];
+    ctx.globalCompositeOperation = "source-over";
+    for (const slot of slots) {
+      if (!slot?.weaponId) continue;
+      const sd = slot.def, ic = Art.get(`icon.${slot.weaponId}`), cfg = CONFIG.slotIcon;
+      const o = { ...cfg, ...(cfg.perWeapon[slot.weaponId] ?? {}), ...(cfg.perSlot[`${def.id}.${sd.id}`] ?? {}) };
+      ctx.save(); ctx.translate(sd.x, sd.y);
+      ctx.rotate((o.followSlotAngle ? sd.angle || 0 : 0) + ((o.rotationDeg || 0) * Math.PI) / 180);
+      ctx.globalAlpha = alpha * 0.85;
+      ctx.drawImage(ic.img, -o.size / 2, -o.size / 2, o.size, o.size);
+      ctx.restore();
+    }
+    ctx.restore();
+    // barra de vida do clone NÃO é mostrada (só no HUD, pela barra do módulo); dano = flash branco
+    if (c.flash > 0) {
+      ctx.globalAlpha = Math.min(0.5, c.flash * 1.6);
+      ctx.drawImage(Art.flashOf(def.sprite), c.x - sp.w / 2, c.y - sp.h / 2, sp.w, sp.h);
+      ctx.globalAlpha = 1;
+    }
+    ctx.globalAlpha = 1;
   }
 }

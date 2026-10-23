@@ -105,7 +105,7 @@
 
     <!-- PAUSA (popup de saída, anúncio, aba oculta) -->
     <section id="ov-pause" class="ov dim" hidden>
-      <button type="button" class="btn btn2 small quit top" id="btn-pause-quit" data-label="‹ Menu principal">‹ Menu principal</button>
+      <button type="button" class="btn btn2 small quit top" id="btn-pause-quit">‹ Menu principal</button>
       <h2>PAUSADO</h2>
       <button type="button" class="btn big" id="btn-resume">CONTINUAR</button>
     </section>
@@ -113,14 +113,25 @@
     <!-- MENU DE CONSTRUÇÃO -->
     <section id="ov-build" class="ov build" hidden>
       <header class="b-head">
-        <button type="button" class="btn btn2 small quit" id="b-quit" data-label="‹ Menu">‹ Menu</button>
         <div class="b-title">CONSTRUÇÃO <small>jogo pausado</small></div>
         <div class="b-coins"><b id="b-coins">0</b> ★</div>
         <button type="button" class="icon-btn" id="b-mute" aria-label="Som">🔊</button>
+        <button type="button" class="btn btn2 small quit" id="b-quit">Menu</button>
       </header>
       <div class="b-ship" id="b-ship"><canvas id="b-canvas"></canvas></div>
       <div class="b-panel" id="b-panel"></div>
       <footer><button type="button" class="btn big" id="b-close">VOLTAR À PARTIDA</button></footer>
+    </section>
+
+    <!-- CAIXA DE CONFIRMAÇÃO (centro da tela; usada por "remover arma/módulo" e "voltar ao menu principal") -->
+    <section id="ov-confirm" class="ov dim dlg-wrap" hidden role="dialog" aria-modal="true" aria-labelledby="dlg-msg">
+      <div class="dlg">
+        <p id="dlg-msg"></p>
+        <div class="dlg-btns">
+          <button type="button" class="btn btn2" id="dlg-no">Não</button>
+          <button type="button" class="btn" id="dlg-yes">Sim</button>
+        </div>
+      </div>
     </section>
 
     <!-- GAME OVER -->

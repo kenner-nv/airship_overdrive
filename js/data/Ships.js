@@ -57,7 +57,7 @@ export const SHIPS = {
     hp: 180,
     speed: 470,
     damageMod: 1.0,
-    hitRadius: 23,
+    hitRadius: 20,
     regenPct: 0.02,
     dodge: null,
     specialBase: { cancelPierce: 0, redirect: 0 },

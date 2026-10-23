@@ -225,6 +225,14 @@ const SUPPORT_ICONS = {
   },
   attackDrone(c, col) { iconFrame(c, col); drawDrone(c, col, "attack"); },
   healDrone(c, col) { iconFrame(c, col); drawDrone(c, col, "heal"); },
+  hologram(c, col) {                     // clone holográfico: nave azul com "fantasma" deslocado e linhas de varredura
+    iconFrame(c, col);
+    const ship = () => poly(c, [[0, -13], [9, 9], [0, 4.5], [-9, 9]]);
+    c.save(); c.translate(5, 1); c.globalAlpha = 0.35; ship(); c.fillStyle = col; c.fill(); c.restore();
+    c.save(); c.translate(-3, 0); ship(); fillStroke(c, lin(c, 0, -13, 0, 9, [[0, "#e6f6ff"], [1, col]]), "#0a2a4a", 1.2);
+    c.clip(); c.fillStyle = "rgba(10,20,50,.55)"; for (let y = -12; y < 10; y += 4) c.fillRect(-12, y, 24, 1.3);
+    c.restore();
+  },
   magnet(c, col) {                       // ímã em ferradura, pontas coloridas
     iconFrame(c, col);
     const U = () => { c.beginPath(); c.moveTo(-8.5, -10); c.lineTo(-8.5, 1); c.arc(0, 1, 8.5, Math.PI, 0, true); c.lineTo(8.5, -10); };
@@ -442,17 +450,30 @@ export const Art = {
   },
 
   // URL (data:) de qualquer sprite (ex.: "pickup.star"), em px × px.
-  urlOf(key, px = 48) {
-    const id = `${key}@${px}`;
+  // mono = true: versão em cinza bem claro, sem cores (o fundo escuro do ícone é mantido).
+  urlOf(key, px = 48, mono = false) {
+    const id = `${key}@${px}${mono ? "m" : ""}`;
     if (iconUrls.has(id)) return iconUrls.get(id);
     const s = sprites.get(key);
     let url = "";
     if (s) {
       const cv = document.createElement("canvas");
       cv.width = cv.height = px;
-      const k = Math.min(px / s.w, px / s.h);
-      cv.getContext("2d").drawImage(s.img, (px - s.w * k) / 2, (px - s.h * k) / 2, s.w * k, s.h * k);
-      try { url = cv.toDataURL("image/png"); } catch { url = ""; }
+      const k = Math.min(px / s.w, px / s.h), c = cv.getContext("2d");
+      c.drawImage(s.img, (px - s.w * k) / 2, (px - s.h * k) / 2, s.w * k, s.h * k);
+      try {
+        if (mono) {
+          const im = c.getImageData(0, 0, px, px), d = im.data;
+          for (let i = 0; i < d.length; i += 4) {
+            const lum = 0.3 * d[i] + 0.59 * d[i + 1] + 0.11 * d[i + 2];
+            const t = Math.min(1, Math.max(0, (lum - 45) / 95));      // escuro (fundo) fica; claro/colorido vira cinza bem claro
+            const v = lum + (228 - lum) * t;
+            d[i] = d[i + 1] = d[i + 2] = v;
+          }
+          c.putImageData(im, 0, 0);
+        }
+        url = cv.toDataURL("image/png");
+      } catch { url = ""; }
     }
     iconUrls.set(id, url);
     return url;

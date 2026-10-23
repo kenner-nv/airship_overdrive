@@ -79,33 +79,39 @@ export class WeaponSystem {
 
   /* ------------------------------ disparo ------------------------------ */
   update(dt) {
-    for (const slot of this.slotList) {
-      if (!slot.weaponId) continue;       // slot vazio não dispara
-      const st = slot.stats;
-      slot.cd -= dt;
-      if (slot.cd <= 0 && slot.burstLeft === 0) {
-        slot.cd = Math.max(st.interval, (st.burst - 1) * BURST_GAP + 0.03);
-        slot.burstLeft = st.burst; slot.burstT = 0;
-      }
-      if (slot.burstLeft > 0) {
-        slot.burstT -= dt;
-        if (slot.burstT <= 0) { this.volley(slot); slot.burstLeft--; slot.burstT = BURST_GAP; }
-      }
+    for (const slot of this.slotList) this.tickSlot(slot, slot, dt, null);
+  }
+
+  // Temporizador de disparo da arma de `slot`. `state` = { cd, burstLeft, burstT }: o próprio slot (nave) ou o estado
+  // de uma arma do clone holográfico (que usa a arma/atributos do slot, mas tem seus próprios tempos). `o` = opções do clone (volley).
+  tickSlot(slot, state, dt, o) {
+    if (!slot.weaponId) return;       // slot vazio não dispara
+    const st = slot.stats;
+    state.cd -= dt;
+    if (state.cd <= 0 && state.burstLeft === 0) {
+      state.cd = Math.max(st.interval, (st.burst - 1) * BURST_GAP + 0.03);
+      state.burstLeft = st.burst; state.burstT = 0;
+    }
+    if (state.burstLeft > 0) {
+      state.burstT -= dt;
+      if (state.burstT <= 0) { this.volley(slot, o); state.burstLeft--; state.burstT = BURST_GAP; }
     }
   }
 
-  volley(slot) {
+  // Um disparo da arma do slot. `o` (só o clone holográfico): { x, y (centro do clone), dmgMul } — sai da posição do slot
+  // relativa ao clone, sem som e sem o disparo carregado da Vanguarda.
+  volley(slot, o = null) {
     const ship = this.game.ship, w = WEAPONS[slot.weaponId], st = slot.stats, sd = slot.def;
-    const ox = ship.x + sd.x, oy = ship.y + sd.y;
-    Sound.play(w.sound);
+    const ox = (o ? o.x : ship.x) + sd.x, oy = (o ? o.y : ship.y) + sd.y;
+    if (!o) Sound.play(w.sound);
 
     // Vanguarda: a cada N disparos DESTA arma sai um disparo carregado (vale para qualquer arma equipada).
     let special = false;
-    if (ship.def.special === "overcharge" && sd.id === ship.def.specialSlot) {   // só a arma do slot principal
+    if (!o && ship.def.special === "overcharge" && sd.id === ship.def.specialSlot) {   // só a arma do slot principal
       slot.shotCount++;
       if (slot.shotCount >= ship.stats.specialEvery) { slot.shotCount = 0; special = true; Sound.play("special"); }
     }
-    const dmg = special ? st.damage * ship.stats.specialMult : st.damage;
+    const dmg = (special ? st.damage * ship.stats.specialMult : st.damage) * (o ? o.dmgMul : 1);
 
     if (w.kind === "pulse") {
       this.game.vfx.ring(ox, oy, 12, st.blast, w.color, 0.35, 4);

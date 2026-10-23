@@ -100,7 +100,6 @@ img{-webkit-user-drag:none;pointer-events:none}
 .slot.sel{border-color:var(--g-warn);box-shadow:0 0 0 3px rgba(255,210,74,.35);border-style:solid}
 .b-shipbtn{all:unset;cursor:pointer;position:absolute;left:50%;transform:translate(-50%,0);padding:5px 16px;border-radius:99px;font-weight:900;font-size:13px;letter-spacing:.1em;
   background:rgba(8,12,30,.9);color:#fff;border:2px solid var(--g-line)}     /* mesmo estilo de um slot ocupado: fundo escuro + contorno azul */
-.b-shipbtn::before{content:"▲";font-size:.7em;margin-right:6px;color:var(--g-line)}
 .b-shipbtn.sel{border-color:var(--g-warn);box-shadow:0 0 0 3px rgba(255,210,74,.35)}
 .b-panel{flex:1;min-height:0;width:100%;overflow-y:auto;overflow-x:hidden;text-align:left;padding:10px;touch-action:pan-y;
   background:var(--g-card);border:1px solid rgba(255,255,255,.14);border-radius:16px}
@@ -135,7 +134,20 @@ img{-webkit-user-drag:none;pointer-events:none}
 /* sair da partida (pausa e menu de construção): pede um 2º toque */
 .quit{flex:none;padding:8px 12px;font-size:12px;white-space:nowrap}
 .quit.top{position:absolute;left:14px;top:calc(var(--k101-safe-top,0px) + 8px + env(safe-area-inset-top,0px))}
-.quit.confirm{background:#d62839;border-color:#ff6b7a;color:#fff}
+.b-head .quit{padding:8px 11px}
+
+/* caixa de confirmação (centro da tela, por cima de tudo) */
+.dlg-wrap{z-index:60;background:rgba(2,3,10,.7)}
+.dlg{width:min(320px,86%);padding:22px 20px 18px;border-radius:16px;background:var(--g-card,#0d1430);border:1px solid rgba(255,255,255,.22);box-shadow:0 10px 40px rgba(0,0,0,.6);text-align:center}
+.dlg p{margin:0 0 18px;font-size:17px;font-weight:800;line-height:1.35}
+.dlg-btns{display:flex;gap:10px}.dlg-btns .btn{flex:1}
+
+/* melhorias do módulo de suporte: 3 níveis em lista */
+.lvlist{display:flex;flex-direction:column;gap:8px}
+.lvrow{display:flex;align-items:center;gap:10px;padding:8px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12)}
+.lvrow .g-ico.br{flex:none;margin:0}
+.lv-i{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.lv-i b{font-size:13px}.lv-i span{font-size:11px;color:var(--g-text2);line-height:1.25}
+.lvrow .buy{min-width:84px}.lvrow.own{border-color:rgba(124,255,178,.4)}.lvrow.lock{opacity:.55}.lv-cost{flex:none;min-width:84px;text-align:center;font-weight:800;font-size:13px;color:var(--g-text2)}
 
 /* HUD: módulo de suporte (ícone + barra: vida do efeito quando ativo · progresso da recarga quando não) */
 .sup{margin-top:5px;display:flex;align-items:center;gap:5px}
