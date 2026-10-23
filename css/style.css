@@ -89,8 +89,8 @@ img{-webkit-user-drag:none;pointer-events:none}
 /* ---------- menu de construção (lista) ---------- */
 .build{justify-content:flex-start;gap:8px;background:rgba(2,3,10,.55);padding-top:calc(var(--k101-safe-top,0px) + 4px + env(safe-area-inset-top,0px))}
 .b-head{width:100%;display:flex;align-items:center;gap:10px}
-.b-title{flex:1;text-align:left;font-weight:900;letter-spacing:.08em}.b-title small{display:block;font-size:10px;color:var(--g-warn);letter-spacing:.05em}
-.b-coins{font-size:22px;font-weight:900;color:var(--g-warn);padding:4px 12px;border-radius:99px;background:rgba(255,210,74,.12);border:1px solid rgba(255,210,74,.4)}
+.b-title{flex:1;min-width:0;white-space:nowrap;font-size:14px;text-align:left;font-weight:900;letter-spacing:.08em}.b-title small{display:block;font-size:10px;color:var(--g-warn);letter-spacing:.05em}
+.b-coins{font-size:20px;white-space:nowrap;font-weight:900;color:var(--g-warn);padding:4px 12px;border-radius:99px;background:rgba(255,210,74,.12);border:1px solid rgba(255,210,74,.4)}
 .b-ship{position:relative;flex:none}
 .b-ship canvas{position:absolute;inset:0}
 .slot{all:unset;cursor:pointer;position:absolute;width:calc(46px*var(--pvs,1));height:calc(46px*var(--pvs,1));min-width:30px;min-height:30px;transform:translate(-50%,-50%);
@@ -99,10 +99,9 @@ img{-webkit-user-drag:none;pointer-events:none}
 .slot img{width:78%;height:78%}
 .slot.sel{border-color:var(--g-warn);box-shadow:0 0 0 3px rgba(255,210,74,.35);border-style:solid}
 .b-shipbtn{all:unset;cursor:pointer;position:absolute;left:50%;transform:translate(-50%,0);padding:5px 16px;border-radius:99px;font-weight:900;font-size:13px;letter-spacing:.1em;
-  background:var(--g-line);color:#04101a;box-shadow:0 0 0 3px rgba(95,243,255,.3),0 4px 12px rgba(0,0,0,.5);animation:nudge 1.6s ease-in-out infinite}
-.b-shipbtn::before{content:"▲";font-size:.7em;margin-right:6px}
-.b-shipbtn.sel{background:var(--g-warn);box-shadow:0 0 0 3px rgba(255,210,74,.35)}
-@keyframes nudge{50%{box-shadow:0 0 0 7px rgba(95,243,255,.12),0 4px 12px rgba(0,0,0,.5)}}
+  background:rgba(8,12,30,.9);color:#fff;border:2px solid var(--g-line)}     /* mesmo estilo de um slot ocupado: fundo escuro + contorno azul */
+.b-shipbtn::before{content:"▲";font-size:.7em;margin-right:6px;color:var(--g-line)}
+.b-shipbtn.sel{border-color:var(--g-warn);box-shadow:0 0 0 3px rgba(255,210,74,.35)}
 .b-panel{flex:1;min-height:0;width:100%;overflow-y:auto;overflow-x:hidden;text-align:left;padding:10px;touch-action:pan-y;
   background:var(--g-card);border:1px solid rgba(255,255,255,.14);border-radius:16px}
 .build footer{width:100%;flex:none}.build footer .btn{width:100%}
@@ -133,6 +132,25 @@ img{-webkit-user-drag:none;pointer-events:none}
 #rotate{display:none;position:fixed;inset:0;z-index:2147482000;background:#04050d;place-items:center;text-align:center;font-weight:800}
 @media (orientation:landscape) and (pointer:coarse) and (max-height:500px){#rotate{display:grid}}
 @media (prefers-reduced-motion:reduce){#banner.show{animation-duration:.01s}.best{animation:none}}
+/* sair da partida (pausa e menu de construção): pede um 2º toque */
+.quit{flex:none;padding:8px 12px;font-size:12px;white-space:nowrap}
+.quit.top{position:absolute;left:14px;top:calc(var(--k101-safe-top,0px) + 8px + env(safe-area-inset-top,0px))}
+.quit.confirm{background:#d62839;border-color:#ff6b7a;color:#fff}
+
+/* HUD: módulo de suporte (ícone + barra: vida do efeito quando ativo · progresso da recarga quando não) */
+.sup{margin-top:5px;display:flex;align-items:center;gap:5px}
+.sup img{width:20px;height:20px;flex:none;opacity:.55}.sup.active img{opacity:1}
+.sup-bar{flex:1;height:5px;border-radius:9px;background:rgba(255,255,255,.18);overflow:hidden}.sup-bar div{height:100%;width:0;transition:width .12s}
+/* barra de vida pulsa em verde enquanto a nave regenera */
+.hp.regen{box-shadow:0 0 0 1px rgba(124,255,178,.75),0 0 10px rgba(124,255,178,.55);animation:regen 1s ease-in-out infinite alternate}
+@keyframes regen{to{box-shadow:0 0 0 1px rgba(124,255,178,.35),0 0 3px rgba(124,255,178,.2)}}
+
+/* slot do módulo de suporte: losango verde (diferente do círculo dos slots de arma) */
+.slot.support{border-radius:10px;transform:translate(-50%,-50%) rotate(45deg);border:2px dashed #7cffb2;color:#7cffb2;background:rgba(10,30,26,.92);width:calc(40px*var(--pvs,1));height:calc(40px*var(--pvs,1));min-width:28px;min-height:28px}
+.slot.support>*{transform:rotate(-45deg)}
+.slot.support.filled{border-style:solid;border-color:#7cffb2}
+.slot.support.sel{border-color:var(--g-warn);box-shadow:0 0 0 3px rgba(255,210,74,.35);border-style:solid}
+.g-ico.br{width:46px;height:46px;margin-bottom:-2px}
 .rm{margin-top:12px;width:100%;background:#d62839;border-color:#ff6b7a;color:#fff}.rm:hover{background:#e63a4b}.rm.confirm{background:#ff1f3d;border-color:#fff;animation:pulse .6s infinite alternate}
 
 /* grade de cards (2 colunas): armas para instalar e ramos de melhoria */

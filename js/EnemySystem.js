@@ -29,8 +29,12 @@ const BEHAVIORS = {
   },
   sine(e, dt) { e.y += e.def.speed * dt; e.x = e.baseX + Math.sin(e.t * 1.8 + e.phase) * AMP.sine; },
   boss(e, dt) {
-    if (e.y < e.holdY) { e.y = Math.min(e.holdY, e.y + e.def.speed * 2.4 * dt); e.x = e.baseX; }
-    else {
+    // `arrived` evita o bug do "teletransporte": durante a oscilação vertical o y chega a ficar ABAIXO de holdY, e o teste
+    // antigo (e.y < e.holdY) devolvia o chefe ao modo de entrada, jogando-o para baseX e de volta a cada quadro.
+    if (!e.arrived) {
+      e.y = Math.min(e.holdY, e.y + e.def.speed * 2.4 * dt); e.x = e.baseX;
+      if (e.y >= e.holdY) e.arrived = true;
+    } else {
       e.hold += dt;
       const k = ramp(e.hold, 1.5);
       e.x = e.baseX + Math.sin(e.hold * 0.55) * AMP.boss * k;

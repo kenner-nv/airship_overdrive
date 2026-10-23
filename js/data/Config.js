@@ -23,10 +23,15 @@ export const CONFIG = {
     tapMaxMs: 320,         // toque mais longo que isso não abre o menu
     dragThresholdPx: 12,   // deslocamento (px de tela) a partir do qual o toque vira arraste
     touchOffsetY: 91,      // nave desenhada acima do dedo (px lógicos)
-    dodge: {
+    dodge: {               // MOUSE
       windowMs: 110,       // janela em que se mede a velocidade do gesto
       minDistance: 150,    // deslocamento mínimo (px lógicos) dentro da janela
       minSpeed: 2300,      // velocidade mínima do gesto (px lógicos / s)
+    },
+    dodgeTouch: {          // TOQUE (celular): um deslize curto e rápido já basta
+      windowMs: 130,
+      minDistance: 60,
+      minSpeed: 1000,
     },
   },
 
@@ -40,6 +45,9 @@ export const CONFIG = {
     leanSqueeze: 0.04,     // achatamento máximo da largura ao inclinar
     hitWidthMul: 2.5,      // área de acerto dos tiros inimigos: largura = hitRadius × este valor (cobre as asas); altura = hitRadius
     hitIframes: 0.9,       // invulnerabilidade curta após levar dano (s)
+    regenDelay: 10,        // segundos sem levar dano até a nave começar a regenerar (a taxa de cada nave fica em Ships.js: regenPct)
+    dodgeMaxScreen: 0.5,   // distância MÁXIMA da esquiva (Espectro): fração da largura/altura da tela, na direção da esquiva
+    dodgeMinDistance: 30,  // distância mínima (px lógicos) de uma esquiva
   },
 
   // Ícone da arma sobre a nave na partida: usa a imagem "icon.<arma>" (Art.js ou Assets.js). Ajuste aqui.
@@ -57,9 +65,11 @@ export const CONFIG = {
       "espectro.asa_e": {size: 30},
       "espectro.asa_d": {size: 30},
     },
+    supportSize: 17,       // tamanho do ícone do módulo de suporte (slot traseiro) sobre a nave
   },
 
   economy: {
+    supportCostMul: 1.5,   // módulo de suporte custa isto × o custo médio de uma arma (Weapons.js)
     startCoins: 180,       // dinheiro inicial: dá para escolher UMA entre canhão básico (110), disparo múltiplo (140) ou laser (180)
     slotCostGrowth: 1.6,   // custo do módulo × 1.6 por cópia do mesmo tipo já instalada (evita empilhar o mais forte)
     waveCoinBonusBase: 6,  // bônus de moedas ao concluir uma onda = base + perWave × onda
@@ -74,8 +84,7 @@ export const CONFIG = {
 
   waves: {
     startDelay: 1.3,
-    intermission: 2.4,
-    maxWaveTime: 42,       // após isso a próxima onda começa mesmo com sobreviventes (s)
+    intermission: 2.4,      // a próxima onda só começa depois que TODOS os inimigos da atual morrerem ou saírem da tela
     budgetBase: 8,         // "orçamento de ameaça" da onda = base + perWave × (onda-1)^exp
     budgetPerWave: 3.4,
     budgetExp: 1.0,
@@ -83,11 +92,11 @@ export const CONFIG = {
     spawnIntervalBase: 0.85,
     spawnIntervalMin: 0.2,
     spawnIntervalDecay: 0.965,
-    hpPerWave: 0.09,       // vida dos inimigos × (1 + 0.09 × (onda-1)); depois da onda softCap cresce pela metade
+    hpPerWave: 0.0675,     // vida dos inimigos × (1 + 0.0675 × (onda-1)); depois da onda softCap cresce pela metade
     hpSoftCapWave: 25,
     shotSpeedPerWave: 0.012, shotSpeedMax: 1.45,
     fireRatePerWave: 0.02,  fireRateMin: 0.55,   // multiplicador do intervalo de tiro
-    damagePerWave: 0.035,   damageMax: 2.2,
+    damagePerWave: 0.02625, damageMax: 2.8,   // dano dos inimigos × (1 + 0.02625 × (onda-1)), até damageMax
     eliteEvery: 5,         // inimigo de elite a cada N ondas (0 = desliga)
   },
 

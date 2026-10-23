@@ -133,11 +133,15 @@ const COMMON = () => [
   ]),
 ];
 
+// Esquiva no nível máximo: inimigos comuns no caminho são destruídos (qualquer onda); os "pesados" (heavy: Couraçado,
+// elites) levam apenas este dano fixo por esquiva.
+export const DASH_HEAVY_DAMAGE = 40;
+
 const SPECIAL = {
   dodge: () => SB("spe", "Esquiva", [
     ["Recarga rápida", "−20% na recuperação da esquiva", [fx("dodgeCooldown", "mul", 0.8)]],
     ["Impulso longo", "+20% na duração e +0,08 s de invulnerabilidade", [fx("dodgeDuration", "mul", 1.2), fx("dodgeIframes", "add", 0.08)]],
-    ["Fantasma", "−20% na recuperação e +0,1 s de invulnerabilidade", [fx("dodgeCooldown", "mul", 0.8), fx("dodgeIframes", "add", 0.1)]],
+    ["Fantasma", "−20% na recuperação, +0,1 s de invulnerabilidade e a esquiva destrói inimigos no caminho (pesados só sofrem dano)", [fx("dodgeCooldown", "mul", 0.8), fx("dodgeIframes", "add", 0.1), fx("dodgeDamage", "add", DASH_HEAVY_DAMAGE)]],
   ]),
   overcharge: () => SB("spe", "Carga", [
     ["Gatilho rápido", "Disparo carregado a cada 8 disparos", [fx("specialEvery", "add", -2)]],
@@ -163,6 +167,7 @@ export const SHIP_LIMITS = {
   dodgeCooldownMin: 0.45,
   dodgeDurationMaxMul: 1.8,
   dodgeIframesMax: 0.45,
+  dodgeDamageMax: 999,
   dmgReductionMax: 0.5,
   specialEvery: [3, 99],
   specialMult: [1, 6],

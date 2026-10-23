@@ -5,6 +5,7 @@
      | "beam" (laser em linha até o fim da tela) | "spiral" (rajadas em espiral)
      interval (s) · count · spreadDeg (aimed) · bulletSpeed · damage · telegraph (aviso antes do tiro, s)
    threat = "custo" no orçamento da onda · weight = chance relativa · minWave = onda em que aparece
+   heavy: true = inimigo "pesado" (como os de elite): a esquiva do Espectro no nível máximo só causa dano, não destrói.
    ========================================================================== */
 export const ENEMIES = {
   basic: {
@@ -27,7 +28,7 @@ export const ENEMIES = {
   tough: {
     id: "tough", name: "Couraçado", sprite: "enemy.tough", behavior: "zigzag",
     hp: 70, speed: 48, radius: 26, ramDamage: 35, score: 45, coins: 11,
-    threat: 4, weight: 3, minWave: 4, fire: [],
+    threat: 4, weight: 3, minWave: 4, fire: [], heavy: true,
   },
   weaver: {
     id: "weaver", name: "Tecelão", sprite: "enemy.weaver", behavior: "sine",

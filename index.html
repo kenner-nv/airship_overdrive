@@ -43,6 +43,7 @@
       <div class="hud-l">
         <div class="hp"><div class="hp-fill" id="hp-fill"></div><span id="hp-text">100/100</span></div>
         <div class="dodge" id="special-meter"><div id="dodge-fill"></div></div>
+        <div class="sup" id="sup-meter" hidden><img id="sup-ico" alt=""><div class="sup-bar"><div id="sup-fill"></div></div></div>
       </div>
       <div class="hud-r"><div id="h-score">0</div><div id="h-coins">0 ★</div><div id="h-wave">ONDA 1</div></div>
     </div>
@@ -77,6 +78,7 @@
         <li>Mova o <b>mouse / dedo</b> para pilotar. Os tiros são automáticos.</li>
         <li><b>Clique / toque</b> na arena para abrir o menu de construção.</li>
         <li>Cada nave tem uma <b>habilidade especial</b>: esquiva, disparo carregado ou tiros que cancelam os inimigos.</li>
+        <li>O <b>slot traseiro</b> aceita um módulo de suporte: escudo de energia, drone de ataque, drone de reparo ou ímã (atrai estrelas e vida).</li>
         <li>Derrote inimigos e <b>passe sobre as estrelas ★</b> para ter dinheiro de construção.</li>
       </ul>
     </section>
@@ -103,6 +105,7 @@
 
     <!-- PAUSA (popup de saída, anúncio, aba oculta) -->
     <section id="ov-pause" class="ov dim" hidden>
+      <button type="button" class="btn btn2 small quit top" id="btn-pause-quit" data-label="‹ Menu principal">‹ Menu principal</button>
       <h2>PAUSADO</h2>
       <button type="button" class="btn big" id="btn-resume">CONTINUAR</button>
     </section>
@@ -110,6 +113,7 @@
     <!-- MENU DE CONSTRUÇÃO -->
     <section id="ov-build" class="ov build" hidden>
       <header class="b-head">
+        <button type="button" class="btn btn2 small quit" id="b-quit" data-label="‹ Menu">‹ Menu</button>
         <div class="b-title">CONSTRUÇÃO <small>jogo pausado</small></div>
         <div class="b-coins"><b id="b-coins">0</b> ★</div>
         <button type="button" class="icon-btn" id="b-mute" aria-label="Som">🔊</button>

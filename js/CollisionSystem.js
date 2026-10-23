@@ -2,6 +2,8 @@
    CollisionSystem.js — colisões por círculos (rápido e justo para um shooter arcade).
    1) tiros do jogador × inimigos   2) tiros inimigos × nave   3) inimigos × nave (contato)
    Invulnerável (esquiva ou dano recente) = atravessa, sem consumir o projétil.
+   Módulo de suporte: o ESCUDO absorve tiros/feixes/colisões antes da nave (SupportSystem.shield*); os DRONES somem ao
+   serem atingidos (SupportSystem.collide). Esquiva do Espectro no nível máximo: dano aos inimigos no caminho (dashVsEnemies).
    ========================================================================== */
 import { Sound } from "./Audio.js";
 import { CONFIG } from "./data/Config.js";
@@ -14,8 +16,10 @@ export class CollisionSystem {
   update() {
     const g = this.game;
     this.playerShotsVsEnemies(g);
+    this.dashVsEnemies(g);
     if (g.ship.def.special === "cancel") this.playerShotsVsEnemyShots(g);
     if (g.state !== "PLAYING" || !g.ship.alive) return;
+    g.supports.collide();
     this.enemyShotsVsShip(g);
     if (g.state !== "PLAYING" || !g.ship.alive) return;
     this.beamsVsShip(g);
@@ -43,6 +47,25 @@ export class CollisionSystem {
         s.life = 0;
         break;
       }
+    }
+  }
+
+  // Espectro (esquiva no nível máximo): quem estiver no caminho da esquiva leva dano. Inimigos comuns são destruídos
+  // (qualquer onda); os "pesados" (heavy / elite) só levam `dodgeDamage`. Cada inimigo é atingido uma vez por esquiva.
+  dashVsEnemies(g) {
+    const ship = g.ship, dash = ship.dashSweep, dmg = ship.stats.dodgeDamage;
+    if (!dash || !(dmg > 0)) return;
+    const ax = ship.prevX, ay = ship.prevY, vx = ship.x - ax, vy = ship.y - ay, L2 = vx * vx + vy * vy;
+    const reach = ship.hitRadius + 8;
+    for (const e of g.enemies.list) {
+      if (e.dead || dash.hit.has(e.id)) continue;
+      const t = L2 > 1e-6 ? Math.min(1, Math.max(0, ((e.x - ax) * vx + (e.y - ay) * vy) / L2)) : 0;   // ponto do trajeto mais próximo (evita "atravessar" sem acertar)
+      const px = ax + vx * t - e.x, py = ay + vy * t - e.y, rr = e.r * 0.85 + reach;
+      if (px * px + py * py > rr * rr) continue;
+      dash.hit.add(e.id);
+      g.damageEnemy(e, e.def.special || e.def.heavy ? dmg : Math.max(dmg, e.hp));
+      g.vfx.spark(e.x, e.y, "#ff8ae0", 8, 220, 2.6, 0.35);
+      g.vfx.ring(e.x, e.y, 6, e.r + 14, "#ffffff", 0.22, 2.5);
     }
   }
 
@@ -86,6 +109,7 @@ export class CollisionSystem {
     const ship = g.ship, hr = ship.hitRadius, wm = CONFIG.ship.hitWidthMul;
     for (const b of g.enemies.shots.active) {
       if (b.life <= 0) continue;
+      if (g.supports.shieldShot(b)) continue;                // o escudo absorve antes de a nave ser atingida
       // área de acerto elíptica: mais larga na horizontal (cobre as asas)
       const rx = b.r + hr * wm, ry = b.r + hr, dx = (b.x - ship.x) / rx, dy = (b.y - ship.y) / ry;
       if (dx * dx + dy * dy > 1) continue;
@@ -99,6 +123,7 @@ export class CollisionSystem {
     const ship = g.ship, hr = ship.hitRadius;
     for (const b of g.enemies.beams) {
       if (!b.fired) continue;
+      if (g.supports.shieldBeam(b)) continue;
       if (Math.abs(ship.x - b.x) > b.w / 2 + hr * CONFIG.ship.hitWidthMul || ship.y + hr < b.y) continue;
       const dealt = ship.damage(b.dmg);
       if (dealt > 0) { g.onShipHit(dealt, ship.x, ship.y); if (!ship.alive) return; }
@@ -109,6 +134,7 @@ export class CollisionSystem {
     const ship = g.ship, hr = ship.hitRadius;
     for (const e of g.enemies.list) {
       if (e.dead) continue;
+      if (g.supports.shieldRam(e)) { g.damageEnemy(e, RAM_SELF_DAMAGE); continue; }   // colisão: o escudo se desfaz e o inimigo também sofre
       const rr = e.r * 0.85 + hr, dx = e.x - ship.x, dy = e.y - ship.y;
       if (dx * dx + dy * dy > rr * rr) continue;
       const dealt = ship.damage(e.def.ramDamage * e.dmgMul);

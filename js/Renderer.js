@@ -4,6 +4,7 @@
    ========================================================================== */
 import { Art, PALETTE } from "./Art.js";
 import { WEAPONS } from "./data/Weapons.js";
+import { SUPPORTS } from "./data/Supports.js";
 import { CONFIG } from "./data/Config.js";
 
 const LAYERS = [
@@ -125,6 +126,13 @@ export class Renderer {
     // coletáveis (pequenos, atrás dos inimigos); piscam quando estão quase sumindo
     for (const p of g.pickups.items.active) {
       if (p.life < 2.2 && Math.floor(g.clock * 9) % 2) continue;
+      if (p.pull > 0) {                                   // item puxado pelo Ímã: rastro curto e discreto atrás dele
+        const sp = Math.hypot(p.vx, p.vy) || 1, len = Math.min(16, p.pull * 0.03);
+        ctx.setTransform(S, 0, 0, S, 0, 0);
+        ctx.globalAlpha = 0.3; ctx.strokeStyle = SUPPORTS.magnet.color; ctx.lineWidth = 1.5; ctx.lineCap = "round";
+        ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - (p.vx / sp) * len, p.y - (p.vy / sp) * len); ctx.stroke();
+        ctx.globalAlpha = 1; ctx.lineCap = "butt";
+      }
       this.blit(p.kind === "star" ? "pickup.star" : "pickup.heart", p.x, p.y, p.kind === "star" ? Math.sin(p.t * 3) * 0.3 : 0, p.kind === "star" ? 1 : 1 + Math.sin(p.t * 5) * 0.08);
     }
 
@@ -149,7 +157,7 @@ export class Renderer {
     }
     ctx.setTransform(S, 0, 0, S, 0, 0);
 
-    if (g.ship.alive) this.drawShip(ctx);
+    if (g.ship.alive) { this.drawShip(ctx); this.drawSupports(ctx); }
     g.vfx.draw(ctx);
 
     if (g.ship.hurtFlash > 0) {
@@ -228,7 +236,7 @@ export class Renderer {
     else if (ship.iframes > 0) alpha = Math.floor(t * 18) % 2 ? 0.35 : 1;   // pisca ao levar dano
     Art.draw(ctx, def.sprite, 0, 0, 0, 1, alpha);
 
-    // pontos dos slots: vazio = anel tracejado, ocupado = ponto com a cor da arma
+    // slots: só os OCUPADOS aparecem (ícone da arma acoplada). Slot vazio não desenha nada durante a partida.
     for (const slot of g.weapons.slotList) {
       const sd = slot.def;
       ctx.globalAlpha = alpha;
@@ -240,12 +248,66 @@ export class Renderer {
         ctx.rotate((o.followSlotAngle ? sd.angle || 0 : 0) + ((o.rotationDeg || 0) * Math.PI) / 180);
         ctx.drawImage(ic.img, -o.size / 2, -o.size / 2, o.size, o.size);
         ctx.restore();
-      } else {
-        ctx.setLineDash([2, 2.4]); ctx.strokeStyle = "rgba(255,255,255,.6)"; ctx.lineWidth = 1.2;
-        ctx.beginPath(); ctx.arc(sd.x, sd.y, 4.2, 0, 6.2832); ctx.stroke(); ctx.setLineDash([]);
       }
+    }
+    // módulo de suporte (slot traseiro): ícone pequeno; fica apagado enquanto recarrega
+    const sup = g.supports;
+    if (sup.moduleId && sup.slotDef) {
+      const ic = Art.get(`icon.${sup.moduleId}`), sz = CONFIG.slotIcon.supportSize;
+      ctx.globalAlpha = alpha * (sup.fx ? 1 : 0.45);
+      ctx.drawImage(ic.img, sup.slotDef.x - sz / 2, sup.slotDef.y - sz / 2, sz, sz);
     }
     ctx.globalAlpha = 1;
     ctx.restore();
+  }
+
+  // Escudo (bolha em volta da nave) e drones. Só leitura do estado de g.supports.
+  drawSupports(ctx) {
+    const g = this.game, sup = g.supports, ship = g.ship, S = this.s;
+    ctx.setTransform(S, 0, 0, S, 0, 0);
+
+    const sh = sup.shield;
+    if (sh) {
+      const col = sup.def.color, k = Math.min(1, sh.t / 0.3), r = sh.r * (0.55 + 0.45 * (1 - (1 - k) * (1 - k)));
+      const low = sh.hp < sh.max, flick = low ? (0.75 + 0.25 * Math.sin(g.clock * 22)) : 1;     // última carga: tremula
+      const base = (ship.dash ? 0.35 : 1) * flick;
+      const gr = ctx.createRadialGradient(ship.x, ship.y, r * 0.35, ship.x, ship.y, r);
+      gr.addColorStop(0, "rgba(95,243,255,0)"); gr.addColorStop(0.75, `rgba(95,243,255,${0.10 * base})`); gr.addColorStop(1, `rgba(95,243,255,${0.34 * base})`);
+      ctx.fillStyle = gr;
+      ctx.beginPath(); ctx.arc(ship.x, ship.y, r, 0, 6.2832); ctx.fill();
+      ctx.globalAlpha = (0.55 + 0.25 * Math.sin(g.clock * 3)) * base;
+      ctx.strokeStyle = low ? "#9fe9ff" : col; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(ship.x, ship.y, r - 1, 0, 6.2832); ctx.stroke();
+      ctx.globalAlpha = 0.5 * base; ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2.2;      // brilho no canto
+      ctx.beginPath(); ctx.arc(ship.x, ship.y, r - 4, Math.PI * 1.12, Math.PI * 1.45); ctx.stroke();
+      if (sh.flash > 0) { ctx.globalAlpha = Math.min(0.5, sh.flash * 2.4); ctx.fillStyle = "#ffffff"; ctx.beginPath(); ctx.arc(ship.x, ship.y, r, 0, 6.2832); ctx.fill(); }
+      ctx.globalAlpha = 1;
+    }
+
+    // Ímã: UM único anel fino que se fecha em direção à nave a cada ~1 s (bem discreto, para não poluir a tela)
+    const mg = sup.magnet;
+    if (mg) {
+      const fade = Math.min(1, mg.t / 0.3) * Math.min(1, mg.left / 0.4), ph = (mg.t % 1.1) / 1.1;
+      ctx.globalAlpha = 0.28 * fade * Math.sin(ph * Math.PI);
+      ctx.strokeStyle = sup.def.color; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(ship.x, ship.y, 14 + 54 * (1 - ph), 0, 6.2832); ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+
+    const d = sup.drone;
+    if (d) {
+      const col = sup.def.color, key = `support.${d.kind}`, k = Math.min(1, d.t / 0.35);
+      const bob = Math.sin(d.bob * 5) * 1.6;
+      if (d.kind === "healDrone" && d.healing) {                     // raio de cura até a nave
+        ctx.globalAlpha = 0.35 + 0.3 * Math.sin(g.clock * 14);
+        ctx.strokeStyle = col; ctx.lineWidth = 2.4; ctx.setLineDash([5, 5]); ctx.lineDashOffset = -g.clock * 40;
+        ctx.beginPath(); ctx.moveTo(d.x, d.y + bob); ctx.lineTo(ship.x, ship.y); ctx.stroke();
+        ctx.setLineDash([]); ctx.lineDashOffset = 0; ctx.globalAlpha = 1;
+      }
+      ctx.globalAlpha = 0.25; ctx.fillStyle = col;                    // halo
+      ctx.beginPath(); ctx.arc(d.x, d.y + bob, 15 * k, 0, 6.2832); ctx.fill(); ctx.globalAlpha = 1;
+      Art.draw(ctx, key, d.x, d.y + bob, d.kind === "attackDrone" ? d.aim : 0, 0.35 + 0.65 * k, 1);
+      ctx.setTransform(S, 0, 0, S, 0, 0);
+    }
   }
 }

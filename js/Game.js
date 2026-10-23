@@ -15,6 +15,7 @@ import { Ship } from "./Ship.js";
 import { CurrencySystem } from "./CurrencySystem.js";
 import { ScoreSystem } from "./ScoreSystem.js";
 import { WeaponSystem } from "./WeaponSystem.js";
+import { SupportSystem } from "./SupportSystem.js";
 import { PickupSystem } from "./PickupSystem.js";
 import { EnemySystem } from "./EnemySystem.js";
 import { WaveSystem } from "./WaveSystem.js";
@@ -44,6 +45,7 @@ export class Game {
     this.score = new ScoreSystem();
     this.vfx = new Vfx();
     this.weapons = new WeaponSystem(this);
+    this.supports = new SupportSystem(this);
     this.pickups = new PickupSystem(this);
     this.enemies = new EnemySystem(this);
     this.waves = new WaveSystem(this);
@@ -110,6 +112,7 @@ export class Game {
     this.waves.reset();
     this.ship.reset(def, this.world);     // antes das armas (o dano da classe entra no cálculo)
     this.weapons.reset(def);
+    this.supports.reset(def);
     this.run = { shipId, time: 0 };
     this.result = null;
     this.input.reset();
@@ -153,6 +156,17 @@ export class Game {
   }
 
   toMenu() { this.setState("MAIN"); }
+
+  // Sair da partida em andamento (pela pausa ou pelo menu de construção) e voltar ao menu principal.
+  // A tentativa é registrada nos recordes (se já tiver pontos), para o jogador não perder a pontuação.
+  abandonRun() {
+    if (this.state !== "PAUSED" && this.state !== "BUILD") return;
+    if (this.run && this.score.score > 0) {
+      LocalSave.addRecord({ score: this.score.score, time: this.run.time, wave: Math.max(1, this.waves.wave), ship: this.run.shipId });
+    }
+    this.input.reset();
+    this.setState("MAIN");
+  }
 
   die() {
     if (this.state !== "PLAYING") return;
@@ -230,7 +244,9 @@ export class Game {
   step(dt) {
     this.run.time += dt;
     this.ship.update(dt, this.world);
+    if (this.ship.regenPulse) { this.ship.regenPulse = false; this.vfx.spark(this.ship.x + (Math.random() - 0.5) * 20, this.ship.y + (Math.random() - 0.5) * 20, "#7cffb2", 1, 36, 2.4, 0.6); }
     this.weapons.update(dt);
+    this.supports.update(dt);
     this.waves.update(dt);
     this.enemies.update(dt);
     this.weapons.updateShots(dt);

@@ -2,7 +2,12 @@
    Ships.js — as três classes. Posições (x, y) dos slots são relativas ao centro da nave
    (y negativo = frente). angle: 0 = para cima, π/2 = direita, π = trás, -π/2 = esquerda.
    menuDir (graus, 0 = cima, 90 = direita, 180 = baixo): para onde o menu circular abre ao tocar no slot.
-   Vanguarda: 4 slots (limite do GDD — NÃO criar um quinto). Tanque: 4 slots. Espectro: 3 slots.
+   Vanguarda: 4 slots (limite do GDD — NÃO criar um quinto). Tanque: 3 slots. Espectro: 3 slots.
+
+   support — o slot TRASEIRO único do "Módulo de suporte" (escudo, drones…; ver data/Supports.js). Mesmos campos de um slot
+     de arma (x, y relativos ao centro da nave; menuDir), mas sem ângulo: não dispara.
+   regenPct — Regeneração (fração da vida MÁXIMA por segundo: 0.013 = 1,3 %/s) que começa depois de Config.ship.regenDelay segundos sem levar dano.
+     Atributo FIXO da nave: não há melhoria que o altere.
 
    special — habilidade especial de cada nave (evolui no 4º ramo da árvore da nave):
      "dodge"      Espectro: esquiva por gesto rápido (único com esquiva)
@@ -26,6 +31,7 @@ export const SHIPS = {
     speed: 620,
     damageMod: 1.25,
     hitRadius: 13,
+    regenPct: 0.013,
     dodge: null,
     specialBase: { specialEvery: 10, specialMult: 2 },
     // Disposição PROVISÓRIA (GDD 5.1): nariz, casco e uma asa de cada lado, todos para a frente.
@@ -35,6 +41,7 @@ export const SHIPS = {
       { id: "asa_e", label: "Asa esq.", x: -36, y: 6, angle: 0, menuDir: -80 },
       { id: "asa_d", label: "Asa dir.", x: 36, y: 6, angle: 0, menuDir: 80 },
     ],
+    support: { id: "suporte", label: "Suporte", x: 0, y: 24, menuDir: 180 },
     engines: [{ x: -10, y: 30 }, { x: 10, y: 30 }],
   },
 
@@ -51,14 +58,16 @@ export const SHIPS = {
     speed: 470,
     damageMod: 1.0,
     hitRadius: 23,
+    regenPct: 0.02,
     dodge: null,
     specialBase: { cancelPierce: 0, redirect: 0 },
     slots: [
       { id: "frente", label: "Frente", x: 0, y: -48, angle: 0, menuDir: 0 },
       /*{ id: "tras", label: "Traseira", x: 0, y: 26, angle: PI, menuDir: 180 },*/
-      { id: "esq", label: "Esquerda", x: -53, y: -6, angle: -PI / 2, menuDir: -90 },
-      { id: "dir", label: "Direita", x: 53, y: -6, angle: PI / 2, menuDir: 90 },
+      { id: "esq", label: "Esquerda", x: -53, y: -6, angle: -PI / 4, menuDir: -90 },   // 45° para a frente
+      { id: "dir", label: "Direita", x: 53, y: -6, angle: PI / 4, menuDir: 90 },
     ],
+    support: { id: "suporte", label: "Suporte", x: 0, y: 30, menuDir: 180 },
     engines: [{ x: -15, y: 48 }, { x: 15, y: 48 }],
   },
 
@@ -68,13 +77,14 @@ export const SHIPS = {
     tagline: "Mobilidade",
     description: "Muito ágil e precisa, mas frágil. Três slots frontais.",
     specialName: "Esquiva",
-    specialDesc: "Um movimento rápido do mouse ou do dedo faz a nave esquivar, com breve invulnerabilidade.",
+    specialDesc: "Um movimento rápido do mouse ou do dedo faz a nave esquivar, com breve invulnerabilidade. No nível máximo, a esquiva destrói os inimigos que estiverem no caminho.",
     special: "dodge",
     sprite: "ship.espectro",
     hp: 70,
     speed: 780,
     damageMod: 1.0,
     hitRadius: 10,
+    regenPct: 0.01,
     dodge: { cooldown: 0.9, duration: 0.19, speed: 1500, iframes: 0.19 },
     specialBase: {},
     slots: [
@@ -82,6 +92,7 @@ export const SHIPS = {
       { id: "asa_e", label: "Asa esq.", x: -35, y: 7, angle: 0, menuDir: -80 },
       { id: "asa_d", label: "Asa dir.", x: 35, y: 7, angle: 0, menuDir: 80 },
     ],
+    support: { id: "suporte", label: "Suporte", x: 0, y: 17, menuDir: 180 },
     engines: [{ x: 0, y: 26 }],
   },
 };

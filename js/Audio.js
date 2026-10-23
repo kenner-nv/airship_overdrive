@@ -125,6 +125,26 @@ const RECIPES = {
     {wave: "sine", f0: 1100, f1: 240, dur: 0.18, gain: 0.018, delay: 0.06 },
   ],
 
+  // ─── MÓDULOS DE SUPORTE ────────────────────────────
+
+  shield_up: [
+    { wave: "sine", f0: 300, f1: 900, dur: 0.30, gain: 0.05 },
+    { wave: "triangle", f0: 600, f1: 1500, dur: 0.26, gain: 0.025, delay: 0.05 },
+  ],
+  shield_hit: [
+    { wave: "triangle", f0: 1250, f1: 520, dur: 0.10, gain: 0.04 },
+    { noise: 2400, f0: 2400, f1: 700, dur: 0.07, gain: 0.02 },
+  ],
+  shield_break: [
+    { wave: "sawtooth", f0: 700, f1: 90, dur: 0.30, gain: 0.05 },
+    { noise: 2000, f0: 2000, f1: 250, dur: 0.28, gain: 0.04, delay: 0.01 },
+  ],
+  drone_launch: [
+    { wave: "sine", f0: 380, f1: 1250, dur: 0.20, gain: 0.04 },
+    { wave: "triangle", f0: 190, f1: 620, dur: 0.18, gain: 0.025, delay: 0.03 },
+  ],
+  drone_shot: [{ wave: "triangle", f0: 1500, f1: 800, dur: 0.05, gain: 0.014 }],
+
   // ─── FIM DE JOGO ───────────────────────────────────
 
   gameover: [
@@ -143,7 +163,7 @@ const RECIPES = {
   beam_fire: [{ wave: "sawtooth", f0: 140, f1: 60, dur: 0.6, gain: 0.09 }, { noise: 1800, f0: 1800, f1: 300, dur: 0.5, gain: 0.07 }],
 };
 
-const MIN_GAP = { enemy_shoot: 0.07, enemy_ring: 0.1, enemy_missile: 0.12, enemy_spiral: 0.1, beam_warn: 0.2, beam_fire: 0.2, coin: 0.04, cancel: 0.05, special: 0.08, hit: 0.045, shoot_basic: 0.05, shoot_laser: 0.06, shoot_spread: 0.07, shoot_missile: 0.08, shoot_pulse: 0.1, explode: 0.05 };
+const MIN_GAP = { enemy_shoot: 0.07, enemy_ring: 0.1, enemy_missile: 0.12, enemy_spiral: 0.1, beam_warn: 0.2, beam_fire: 0.2, coin: 0.04, cancel: 0.05, special: 0.08, shield_hit: 0.06, drone_shot: 0.09, hit: 0.045, shoot_basic: 0.05, shoot_laser: 0.06, shoot_spread: 0.07, shoot_missile: 0.08, shoot_pulse: 0.1, explode: 0.05 };
 const MAX_VOICES = 18;
 const MUSIC_LEVEL = 0.5;
 

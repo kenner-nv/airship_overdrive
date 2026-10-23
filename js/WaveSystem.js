@@ -102,7 +102,8 @@ export class WaveSystem {
       }
       if (!this.queue.length) this.phase = "clearing";
     } else if (this.phase === "clearing") {
-      if (g.enemies.aliveCount === 0 || this.waveTime > CONFIG.waves.maxWaveTime) this.completeWave();
+      // a próxima onda só vem quando não resta nenhum inimigo vivo (mortos ou que já saíram da tela — EnemySystem os remove)
+      if (g.enemies.aliveCount === 0) this.completeWave();
     }
   }
 }

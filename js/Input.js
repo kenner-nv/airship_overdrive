@@ -47,6 +47,8 @@ export class InputController {
       this.mouseDown = true;
     } else if (!this.touch) {
       this.touch = { id: e.pointerId, cx: e.clientX, cy: e.clientY, t: performance.now(), dragging: false };
+      this.samples.length = 0;
+      this.sample(this.toLogical(e));        // o deslize conta desde o instante em que o dedo encosta (não só depois do limiar de arraste)
     }
   }
 
@@ -87,22 +89,30 @@ export class InputController {
     const t = this.touch;
     if (!t || t.id !== e.pointerId) return;
     if (!t.dragging && Math.hypot(e.clientX - t.cx, e.clientY - t.cy) > cfg.dragThresholdPx) t.dragging = true;
+    // usa também os pontos intermediários do gesto (o navegador agrupa vários num único evento em telas de toque)
+    const pts = e.getCoalescedEvents ? e.getCoalescedEvents() : null;
+    if (pts && pts.length > 1) for (const ce of pts) this.sample(this.toLogical(ce), ce.timeStamp);
+    else this.sample(p);
     if (t.dragging) {
       g.ship.setTarget(p.x, p.y - cfg.touchOffsetY * (g.world.width / CONFIG.world.width));      // a nave fica acima do dedo
       g.ship.clampTarget(g.world);
-      this.sample(p);
-      this.checkDodge();
+      this.checkDodge("touch");
     }
   }
 
-  sample(p) {
+  sample(p, ts) {
     const now = performance.now(), s = this.samples;
-    s.push({ t: now, x: p.x, y: p.y });
-    while (s.length && now - s[0].t > CONFIG.input.dodge.windowMs) s.shift();
+    const t = Number.isFinite(ts) && Math.abs(now - ts) < 500 ? Math.min(ts, now) : now;   // carimbo do próprio ponto (se confiável)
+    s.push({ t, x: p.x, y: p.y });
+    const win = Math.max(CONFIG.input.dodge.windowMs, CONFIG.input.dodgeTouch.windowMs);
+    while (s.length && now - s[0].t > win) s.shift();
   }
 
-  checkDodge() {
-    const s = this.samples, d = CONFIG.input.dodge;
+  // Mouse: gesto longo e muito rápido · Toque: deslize curto (Config.input.dodgeTouch).
+  checkDodge(kind = "mouse") {
+    const d = kind === "touch" ? CONFIG.input.dodgeTouch : CONFIG.input.dodge;
+    const now = performance.now();
+    const s = this.samples.filter((q) => now - q.t <= d.windowMs);
     if (s.length < 2) return;
     const a = s[0], b = s[s.length - 1];
     const dt = (b.t - a.t) / 1000;
@@ -110,7 +120,7 @@ export class InputController {
     const dx = b.x - a.x, dy = b.y - a.y;
     const dist = Math.hypot(dx, dy);
     if (dist >= d.minDistance && dist / dt >= d.minSpeed) {
-      if (this.game.requestDodge(dx, dy)) s.length = 0;
+      if (this.game.requestDodge(dx, dy)) this.samples.length = 0;
     }
   }
 }

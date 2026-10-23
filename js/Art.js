@@ -6,6 +6,7 @@
    ========================================================================== */
 import { IMAGE_OVERRIDES } from "./data/Assets.js";
 import { WEAPONS } from "./data/Weapons.js";
+import { SUPPORTS } from "./data/Supports.js";
 
 export const PALETTE = {
   bgTop: "#04050d", bgBottom: "#0b1026",
@@ -201,6 +202,129 @@ const ICONS = {
   area(c, col) { iconFrame(c, col); c.strokeStyle = col; c.lineWidth = 2.4; for (const r of [4, 9, 14]) { c.globalAlpha = 1 - r / 20; c.beginPath(); c.arc(0, 0, r, 0, TAU); c.stroke(); } c.globalAlpha = 1; c.beginPath(); c.arc(0, 0, 2.5, 0, TAU); c.fillStyle = "#fff"; c.fill(); },
 };
 
+
+/* ------------------------------ módulos de suporte: drones + ícones ------------------------------ */
+// Drone (aponta para cima; cabe em ~26×26). kind: "attack" (cano) | "heal" (cruz)
+function drawDrone(c, col, kind) {
+  poly(c, [[-2.6, 7], [2.6, 7], [0, 12.5]]); c.fillStyle = "#ffb347"; c.fill();                      // propulsor
+  for (const x of [-13, 5]) { rr(c, x, -3, 8, 7, 2.5); fillStroke(c, "#2b3552", col, 1.3); }          // asas
+  if (kind === "attack") { rr(c, -1.7, -13, 3.4, 9, 1.2); fillStroke(c, "#e9eefc", "#1a2238", 1); }    // cano
+  c.beginPath(); c.arc(0, 0, 7.4, 0, TAU);
+  fillStroke(c, lin(c, 0, -7, 0, 7, [[0, "#ffffff"], [0.25, col], [1, "rgba(20,26,50,1)"]]), "rgba(5,10,30,.9)", 1.5);
+  if (kind === "heal") { c.fillStyle = "#ffffff"; rr(c, -1.6, -4.4, 3.2, 8.8, 1); c.fill(); rr(c, -4.4, -1.6, 8.8, 3.2, 1); c.fill(); }
+  else { c.beginPath(); c.arc(0, 0, 2.7, 0, TAU); c.fillStyle = "#fff6c4"; c.fill(); }
+}
+
+const SUPPORT_ICONS = {
+  shield(c, col) {
+    iconFrame(c, col);
+    c.beginPath(); c.arc(0, 0, 13, 0, TAU); c.fillStyle = "rgba(95,243,255,.18)"; c.fill();
+    c.strokeStyle = col; c.lineWidth = 2.6; c.stroke();
+    c.beginPath(); c.arc(0, 0, 9.6, Math.PI * 1.08, Math.PI * 1.62); c.strokeStyle = "rgba(255,255,255,.85)"; c.lineWidth = 2; c.stroke();
+    poly(c, [[0, -7], [4.5, 5.5], [0, 3], [-4.5, 5.5]]); c.fillStyle = "#eaffff"; c.fill();
+  },
+  attackDrone(c, col) { iconFrame(c, col); drawDrone(c, col, "attack"); },
+  healDrone(c, col) { iconFrame(c, col); drawDrone(c, col, "heal"); },
+  magnet(c, col) {                       // ímã em ferradura, pontas coloridas
+    iconFrame(c, col);
+    const U = () => { c.beginPath(); c.moveTo(-8.5, -10); c.lineTo(-8.5, 1); c.arc(0, 1, 8.5, Math.PI, 0, true); c.lineTo(8.5, -10); };
+    c.lineCap = "butt"; c.lineJoin = "round";
+    U(); c.strokeStyle = "rgba(5,10,30,.9)"; c.lineWidth = 9.6; c.stroke();
+    U(); c.strokeStyle = "#c9d1ea"; c.lineWidth = 6.4; c.stroke();
+    c.lineWidth = 6.4;
+    c.strokeStyle = "#ff4d6d"; c.beginPath(); c.moveTo(-8.5, -10); c.lineTo(-8.5, -4.5); c.stroke();
+    c.strokeStyle = col; c.beginPath(); c.moveTo(8.5, -10); c.lineTo(8.5, -4.5); c.stroke();
+  },
+};
+
+/* ------------------------------ ícones dos RAMOS de melhoria (menu de construção) ------------------------------ */
+// Cada ramo tem um ícone que diz do que ele trata (e não a imagem da arma). Chaves: branch.<id do ramo>;
+// o ramo "spe" (habilidade especial) tem um ícone por nave: branch.spe.<dodge|overcharge|cancel>.
+const BRANCH_ICONS = {
+  // Cadência: raio (disparos mais rápidos)
+  cad(c) { iconFrame(c, "#ffe14a"); poly(c, [[4, -15], [-8, 3], [-1, 3], [-4, 15], [8, -3], [1, -3]]); fillStroke(c, lin(c, 0, -15, 0, 15, [[0, "#fff6a8"], [1, "#ffb81f"]]), "#6b4a00", 1.2); },
+  // Dispersão: três setas abrindo em leque
+  dis(c) {
+    iconFrame(c, "#5ff3ff");
+    c.strokeStyle = "#5ff3ff"; c.fillStyle = "#5ff3ff"; c.lineWidth = 2.6; c.lineCap = "round";
+    for (const a of [-0.62, 0, 0.62]) {
+      c.save(); c.translate(0, 11); c.rotate(a);
+      c.beginPath(); c.moveTo(0, 0); c.lineTo(0, -17); c.stroke();
+      poly(c, [[0, -24], [4.6, -15.5], [-4.6, -15.5]]); c.fill();
+      c.restore();
+    }
+    c.beginPath(); c.arc(0, 11, 2.6, 0, TAU); c.fillStyle = "#fff"; c.fill();
+  },
+  // Potência: chama
+  pot(c) {
+    iconFrame(c, "#ff8a2a");
+    c.beginPath(); c.moveTo(0, -16);
+    c.bezierCurveTo(3, -9, 11, -5, 10.5, 4.5); c.bezierCurveTo(10, 11, 5.5, 15, 0, 15);
+    c.bezierCurveTo(-5.5, 15, -10, 11, -10.5, 4.5); c.bezierCurveTo(-10.5, -0.5, -7, -3, -4, -8.5);
+    c.bezierCurveTo(-3, -5, -1.5, -4, 0, -16); c.closePath();
+    fillStroke(c, lin(c, 0, -16, 0, 15, [[0, "#ffb347"], [1, "#ff3d3d"]]), "#5a1308", 1.2);
+    c.beginPath(); c.moveTo(0, -1); c.bezierCurveTo(2.5, 3, 5.5, 5, 5, 9); c.bezierCurveTo(4.6, 12, 2.4, 13.2, 0, 13.2);
+    c.bezierCurveTo(-2.4, 13.2, -4.6, 12, -5, 9); c.bezierCurveTo(-5.5, 5.5, -2, 3.5, 0, -1); c.closePath();
+    c.fillStyle = "#ffe98a"; c.fill();
+  },
+  // Especial (armas): estrela
+  esp(c) {
+    iconFrame(c, "#c58bff");
+    const pts = []; for (let i = 0; i < 10; i++) { const r = i % 2 ? 6.4 : 15, a = -Math.PI / 2 + (i * Math.PI) / 5; pts.push([Math.cos(a) * r, Math.sin(a) * r + 1]); }
+    poly(c, pts); fillStroke(c, lin(c, 0, -14, 0, 14, [[0, "#f1dcff"], [1, "#a55bff"]]), "#2a0b57", 1.2);
+  },
+  // Casco: coração (vida máxima)
+  hull(c) {
+    iconFrame(c, "#ff6b8a");
+    c.beginPath(); c.moveTo(0, 13); c.bezierCurveTo(-16, 2, -13, -11, -6, -11); c.bezierCurveTo(-2, -11, 0, -8, 0, -6);
+    c.bezierCurveTo(0, -8, 2, -11, 6, -11); c.bezierCurveTo(13, -11, 16, 2, 0, 13); c.closePath();
+    fillStroke(c, lin(c, 0, -11, 0, 13, [[0, "#ff9db3"], [1, "#e0264f"]]), "#4a0615", 1.2);
+    c.beginPath(); c.ellipse(-6, -6, 3, 2, -0.6, 0, TAU); c.fillStyle = "rgba(255,255,255,.7)"; c.fill();
+  },
+  // Motores: foguete (velocidade)
+  eng(c) {
+    iconFrame(c, "#5ff3ff");
+    poly(c, [[-3.5, 7], [3.5, 7], [0, 16]]); c.fillStyle = "#ffae3d"; c.fill();
+    poly(c, [[5, 1], [11, 11], [5, 8]]); fillStroke(c, "#5ff3ff", "#0a2a3a", 1);
+    poly(c, [[-5, 1], [-11, 11], [-5, 8]]); fillStroke(c, "#5ff3ff", "#0a2a3a", 1);
+    poly(c, [[0, -16], [5.4, -6], [5.4, 7], [-5.4, 7], [-5.4, -6]]); fillStroke(c, lin(c, -5, 0, 5, 0, [[0, "#ffffff"], [1, "#9fb8e0"]]), "#16223f", 1.2);
+    c.beginPath(); c.arc(0, -3, 2.4, 0, TAU); c.fillStyle = "#2f7bff"; c.fill();
+  },
+  // Blindagem: escudo
+  arm(c) {
+    iconFrame(c, "#4d9bff");
+    c.beginPath(); c.moveTo(0, -15); c.lineTo(11.5, -10.5); c.lineTo(11.5, 0); c.bezierCurveTo(11.5, 8, 5.5, 12.5, 0, 15.5);
+    c.bezierCurveTo(-5.5, 12.5, -11.5, 8, -11.5, 0); c.lineTo(-11.5, -10.5); c.closePath();
+    fillStroke(c, lin(c, 0, -15, 0, 15, [[0, "#9fd0ff"], [1, "#2f5fd8"]]), "#0a1a4a", 1.3);
+    c.beginPath(); c.moveTo(0, -10.5); c.lineTo(7, -7.6); c.lineTo(7, 0); c.bezierCurveTo(7, 5, 3.6, 8, 0, 10); c.closePath();
+    c.fillStyle = "rgba(255,255,255,.28)"; c.fill();
+  },
+  // Especial das naves: um por habilidade
+  "spe.dodge"(c) {                       // Espectro — esquiva: a nave e seus "fantasmas" deixados para trás
+    iconFrame(c, "#ff8ae0");
+    for (const [dx, dy, al] of [[-8, 9, 0.22], [-4, 4, 0.45], [2, -2, 1]]) {
+      c.save(); c.translate(dx, dy); c.globalAlpha = al;
+      poly(c, [[2, -11], [9, 8], [2, 4.5], [-5, 8]]); fillStroke(c, lin(c, 0, -11, 0, 8, [[0, "#ffc2f0"], [1, "#8a4dff"]]), "#26104d", 1);
+      c.restore();
+    }
+  },
+  "spe.overcharge"(c) {                  // Vanguarda — disparo carregado: projétil grande com halo
+    iconFrame(c, "#ffd24a");
+    c.save(); c.rotate(0.55);
+    c.beginPath(); c.arc(0, 0, 13, 0, TAU); c.fillStyle = "rgba(255,210,74,.28)"; c.fill();
+    rr(c, -4.2, -13, 8.4, 26, 4.2); fillStroke(c, lin(c, 0, -13, 0, 13, [[0, "#fff1b0"], [1, "#ffa81f"]]), "#6b4300", 1.2);
+    rr(c, -1.5, -10, 3, 20, 1.5); c.fillStyle = "#fff"; c.fill();
+    c.restore();
+  },
+  "spe.cancel"(c) {                      // Tanque — tiros que cancelam: tiro inimigo riscado
+    iconFrame(c, "#5ff3ff");
+    poly(c, [[0, -8], [7, 0], [0, 8], [-7, 0]]); c.fillStyle = "#ff4d6d"; c.fill();
+    poly(c, [[0, -3.6], [3.4, 0], [0, 3.6], [-3.4, 0]]); c.fillStyle = "#fff"; c.fill();
+    c.strokeStyle = "#5ff3ff"; c.lineWidth = 3.2; c.lineCap = "round";
+    c.beginPath(); c.moveTo(-10, -10); c.lineTo(10, 10); c.moveTo(10, -10); c.lineTo(-10, 10); c.stroke();
+  },
+};
+
 /* ------------------------------ tabela de sprites (tamanhos LÓGICOS em px) ------------------------------ */
 const ART = {
   "ship.vanguarda": { w: 100, h: 72, draw: drawVanguarda },
@@ -221,11 +345,19 @@ const ART = {
   "enemy.launcher": { w: 50, h: 60, draw: drawLauncher },
   "enemy.beamer": { w: 46, h: 56, draw: drawBeamer },
   "enemy.elite2": { w: 120, h: 135, draw: drawElite2 },
+  "support.attackDrone": { w: 26, h: 26, draw: (c) => drawDrone(c, SUPPORTS.attackDrone.color, "attack") },
+  "support.healDrone": { w: 26, h: 26, draw: (c) => drawDrone(c, SUPPORTS.healDrone.color, "heal") },
   "pickup.star": { w: 14, h: 14, draw: drawStar },
   "pickup.heart": { w: 20, h: 20, draw: drawHeart },
 };
 for (const id of Object.keys(ICONS)) {
   ART[`icon.${id}`] = { w: 48, h: 48, draw: (c) => ICONS[id](c, WEAPONS[id].color) };                 // menu 
+}
+for (const id of Object.keys(SUPPORT_ICONS)) {
+  ART[`icon.${id}`] = { w: 48, h: 48, draw: (c) => SUPPORT_ICONS[id](c, SUPPORTS[id].color) };         // módulos de suporte
+}
+for (const id of Object.keys(BRANCH_ICONS)) {
+  ART[`branch.${id}`] = { w: 48, h: 48, draw: (c) => BRANCH_ICONS[id](c) };                            // ramos de melhoria
 }
 
 /* ------------------------------ API ------------------------------ */

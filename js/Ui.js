@@ -17,7 +17,8 @@ class Hud {
   constructor(game) {
     this.game = game;
     this.root = $("hud");
-    this.el = { hp: $("hp-fill"), hpText: $("hp-text"), dodge: $("dodge-fill"), score: $("h-score"), coins: $("h-coins"), wave: $("h-wave") };
+    this.el = { hp: $("hp-fill"), hpText: $("hp-text"), dodge: $("dodge-fill"), score: $("h-score"), coins: $("h-coins"), wave: $("h-wave"),
+      sup: $("sup-meter"), supIco: $("sup-ico"), supFill: $("sup-fill") };
     this.reset();
   }
   reset() { this.c = {}; }
@@ -29,6 +30,17 @@ class Hud {
       e.hp.style.width = `${ratio * 100}%`;
       e.hp.classList.toggle("low", ratio < 0.3);
       e.hpText.textContent = v;
+    });
+    this.set("regen", s.regenOn, (v) => e.hp.parentElement.classList.toggle("regen", v));     // barra pulsa enquanto regenera
+    // módulo de suporte: barra = vida do efeito (ativo) ou progresso da recarga
+    const sup = g.supports.hud();
+    this.set("sup", sup ? `${sup.id}|${sup.active}|${Math.round(sup.p * 60)}` : "", () => {
+      e.sup.hidden = !sup;
+      if (!sup) return;
+      if (e.supIco.dataset.id !== sup.id) { e.supIco.dataset.id = sup.id; e.supIco.src = Art.iconURL(sup.id); }
+      e.sup.classList.toggle("active", sup.active);
+      e.supFill.style.width = `${Math.round(sup.p * 100)}%`;
+      e.supFill.style.background = sup.active ? sup.color : "rgba(255,255,255,.45)";
     });
     // medidor da habilidade especial: Espectro = recarga da esquiva · Vanguarda = disparos até o carregado · Tanque = sem medidor
     const sp = s.def.special;
@@ -74,6 +86,23 @@ export class Ui {
     on("btn-ships-back", () => g.setState("MAIN"));
     on("btn-records-back", () => g.setState("MAIN"));
     on("btn-resume", () => g.resume());
+    // sair da partida: o 1º toque pede confirmação (3 s), o 2º volta ao menu principal
+    this.quitBtns = ["btn-pause-quit", "b-quit"].map($);
+    for (const b of this.quitBtns) {
+      let timer = 0;
+      b.addEventListener("click", () => {
+        if (!b.classList.contains("confirm")) {
+          this.resetQuit();
+          b.classList.add("confirm"); b.textContent = "Sair? Toque de novo";
+          Sound.play("click");
+          timer = setTimeout(() => this.resetQuit(), 3000);
+          b._timer = timer;
+          return;
+        }
+        this.resetQuit();
+        g.abandonRun();
+      });
+    }
     on("btn-retry", () => g.startRun(g.lastShipId));
     on("btn-change", () => { this.renderShips(); g.setState("SHIPSELECT"); });
     on("btn-menu", () => g.setState("MAIN"));
@@ -107,7 +136,12 @@ export class Ui {
     $("vol").value = Math.round(Sound.volume * 100);
   }
 
+  resetQuit() {
+    for (const b of this.quitBtns) { clearTimeout(b._timer); b.classList.remove("confirm"); b.textContent = b.dataset.label; }
+  }
+
   onState(s, prev) {
+    this.resetQuit();
     const map = { LOADING: "loading", MAIN: "main", SHIPSELECT: "ships", RECORDS: "records", PAUSED: "pause", BUILD: "build", GAMEOVER: "end" };
     for (const [k, el] of Object.entries(this.ov)) el.hidden = map[s] !== k;
     this.hud.root.hidden = !["PLAYING", "PAUSED", "DYING"].includes(s);
@@ -149,7 +183,7 @@ export class Ui {
       return `<div class="slide" data-ship="${id}">
         <div class="hero"><canvas width="360" height="360" data-sprite="${d.sprite}"></canvas></div>
         <h3>${esc(d.name)} <small>${esc(d.tagline)}</small></h3>
-        <div class="stats"><label>Vida${bar(d.hp / 180)}</label><label>Velocidade${bar(d.speed / 780)}</label><label>Dano${bar(d.damageMod / 1.25)}</label><label>Slots para armas<span>${"●".repeat(d.slots.length)}</span></label></div>
+        <div class="stats"><label>Vida${bar(d.hp / 180)}</label><label>Regeneração${bar((d.hp * (d.regenPct ?? 0)) / 3.6)}</label><label>Velocidade${bar(d.speed / 780)}</label><label>Dano${bar(d.damageMod / 1.25)}</label><label>Slots para armas<span>${"●".repeat(d.slots.length)}</span></label></div>
         <p class="sp"><b>${esc(d.specialName)}:</b> ${esc(d.specialDesc)}</p>
       </div>`;
     }).join("");
