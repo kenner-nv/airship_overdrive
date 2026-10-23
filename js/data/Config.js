@@ -54,16 +54,15 @@ export const CONFIG = {
   //   size: lado em px lógicos · rotationDeg: giro extra em graus (somado à direção do slot se followSlotAngle)
   //   perWeapon: { missile: { size: 22 } } · perSlot: { "tanque.esq": { rotationDeg: 90 } }  (id da nave + "." + id do slot)
   slotIcon: {
-    size: 35,
+    size: 30,
     rotationDeg: 0,
     followSlotAngle: true,
     perWeapon: {},
     perSlot: {
       "vanguarda.nariz": {size: 25},
-      "vanguarda.casco": {size: 30},
-      "espectro.centro": {size: 25},
-      "espectro.asa_e": {size: 30},
-      "espectro.asa_d": {size: 30},
+      "espectro.centro": {size: 23},
+      "espectro.asa_e": {size: 27},
+      "espectro.asa_d": {size: 27},
     },
     supportSize: 17,       // tamanho do ícone do módulo de suporte (slot traseiro) sobre a nave
   },
