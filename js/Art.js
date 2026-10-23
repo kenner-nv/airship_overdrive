@@ -328,7 +328,7 @@ const BRANCH_ICONS = {
 /* ------------------------------ tabela de sprites (tamanhos LÓGICOS em px) ------------------------------ */
 const ART = {
   "ship.vanguarda": { w: 100, h: 72, draw: drawVanguarda },
-  "ship.tanque": { w: 120, h: 120, draw: drawTanque },
+  "ship.tanque": { w: 113, h: 116, draw: drawTanque },
   "ship.espectro": { w: 90, h: 60, draw: drawEspectro },
   "enemy.basic": { w: 38, h: 38, draw: drawBasic },
   "enemy.fast": { w: 32, h: 40, draw: drawFast },
