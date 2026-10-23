@@ -62,13 +62,13 @@ export const SHIPS = {
     dodge: null,
     specialBase: { cancelPierce: 0, redirect: 0 },
     slots: [
-      { id: "frente", label: "Frente", x: 0, y: -48, angle: 0, menuDir: 0 },
+      { id: "frente", label: "Frente", x: 0, y: -47, angle: 0, menuDir: 0 },
       /*{ id: "tras", label: "Traseira", x: 0, y: 26, angle: PI, menuDir: 180 },*/
-      { id: "esq", label: "Esquerda", x: -53, y: -6, angle: -PI / 4, menuDir: -90 },   // 45° para a frente
-      { id: "dir", label: "Direita", x: 53, y: -6, angle: PI / 4, menuDir: 90 },
+      { id: "esq", label: "Esquerda", x: -44, y: -8, angle: -PI / 4, menuDir: -90 },   // 45° para a frente
+      { id: "dir", label: "Direita", x: 44, y: -8, angle: PI / 4, menuDir: 90 },
     ],
     support: { id: "suporte", label: "Suporte", x: 0, y: 30, menuDir: 180 },
-    engines: [{ x: -15, y: 48 }, { x: 15, y: 48 }],
+    engines: [{ x: -15, y: 46 }, { x: 15, y: 46 }],
   },
 
   espectro: {
