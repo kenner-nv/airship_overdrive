@@ -37,7 +37,7 @@ export const SHIPS = {
     // Disposição PROVISÓRIA (GDD 5.1): nariz, casco e uma asa de cada lado, todos para a frente.
     slots: [
       { id: "nariz", label: "Nariz", x: 0, y: -32, angle: 0, menuDir: 0 },
-      { id: "casco", label: "Casco", x: 0, y: 5, angle: 0, menuDir: 180 },
+      /*{ id: "casco", label: "Casco", x: 0, y: 5, angle: 0, menuDir: 180 },*/
       { id: "asa_e", label: "Asa esq.", x: -36, y: 6, angle: 0, menuDir: -80 },
       { id: "asa_d", label: "Asa dir.", x: 36, y: 6, angle: 0, menuDir: 80 },
     ],
