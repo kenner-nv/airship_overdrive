@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Catálogo de sprites — Starship Overdrive</title>
+<style>
+  :root { --bg:#0b1026; --panel:#121a3a; --line:#26335e; --txt:#e6ecff; --mut:#8e9bc7; --acc:#5ff3ff; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt); font:14px/1.45 system-ui, sans-serif; padding:20px 16px 60px; }
+  h1 { margin:0 0 4px; font-size:22px; }
+  p.sub { margin:0 0 16px; color:var(--mut); }
+  .bar { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 20px; align-items:center; position:sticky; top:0; background:var(--bg); padding:8px 0; z-index:2; }
+  .bar button { background:var(--panel); color:var(--txt); border:1px solid var(--line); padding:6px 12px; border-radius:999px; cursor:pointer; font:inherit; }
+  .bar button.on { border-color:var(--acc); color:var(--acc); }
+  .bar input[type=search] { background:var(--panel); color:var(--txt); border:1px solid var(--line); padding:6px 10px; border-radius:8px; font:inherit; min-width:160px; }
+  .bar label { color:var(--mut); display:flex; align-items:center; gap:6px; }
+  section { margin:0 0 34px; }
+  section > h2 { font-size:17px; margin:0 0 4px; padding-bottom:6px; border-bottom:1px solid var(--line); }
+  section > p { margin:6px 0 12px; color:var(--mut); font-size:13px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:14px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:10px; display:flex; flex-direction:column; gap:8px; }
+  .card.main { border-color:#ffd24a; }
+  .view { min-height:130px; display:flex; align-items:center; justify-content:center; border-radius:6px; padding:8px;
+          background:conic-gradient(#171f45 25%, #101733 0 50%, #171f45 0 75%, #101733 0) 0 0/16px 16px; }
+  .view canvas { image-rendering:auto; flex:none; display:block; }
+  .id { font:600 12.5px ui-monospace, Menlo, monospace; word-break:break-all; color:var(--acc); }
+  .meta { color:var(--mut); font-size:12.5px; }
+  .tag { display:inline-block; font-size:11px; padding:1px 7px; border-radius:999px; border:1px solid var(--line); margin-right:4px; color:var(--txt); }
+  .tag.p { border-color:#ffd24a; color:#ffd24a; }
+  .tag.a { border-color:#b79bff; color:#b79bff; }
+  .group { background:#0e1533; border:1px solid var(--line); border-radius:12px; padding:12px; margin:0 0 14px; }
+  .group h3 { margin:0 0 10px; font-size:14px; }
+  #load { background:var(--panel); border:1px dashed var(--line); border-radius:12px; padding:18px; margin:0 0 20px; display:none; }
+  #load.show { display:block; }
+  #err { color:#ff9db0; }
+  .hide { display:none !important; }
+</style>
+</head>
+<body>
+<h1>Catálogo de sprites</h1>
+<p class="sub" id="sub">Lê o arquivo <b>Art.js</b> (mesma pasta deste HTML) e desenha todos os sprites provisórios. O tamanho mostrado é o <b>tamanho máximo lógico</b> (largura × altura, em px do jogo) de cada sprite.</p>
+
+<div id="load">
+  <p><b>Não consegui abrir o Art.js automaticamente</b> (o navegador bloqueia a leitura de arquivos quando a página é aberta direto do disco).<br>
+  Escolha o arquivo <b>Art.js</b> abaixo — ou abra esta página por um servidor local (ex.: <code>python3 -m http.server</code> nesta pasta).</p>
+  <input type="file" id="pick" accept=".js,text/javascript">
+  <p id="err"></p>
+</div>
+
+<div class="bar hide" id="bar"></div>
+<main id="out"></main>
+
+<script>
+/* O catálogo lê o TEXTO do Art.js, troca os "import" por valores equivalentes e executa o código: assim funciona com qualquer
+   sprite novo adicionado ao Art.js (a tabela ART é lida diretamente) e dispensa servidor. As imagens definitivas
+   (data/Assets.js → IMAGE_OVERRIDES) são ignoradas de propósito: aqui aparece sempre o desenho em código. */
+const STUB_WEAPONS = { basic:{color:"#5ff3ff"}, laser:{color:"#b266ff"}, missile:{color:"#ffd24a"}, spread:{color:"#7cffb2"}, area:{color:"#ffe03a"} };
+const STUB_SUPPORTS = { shield:{color:"#5ff3ff"}, attackDrone:{color:"#c4a1ff"}, healDrone:{color:"#7cffb2"}, magnet:{color:"#c58bff"}, hologram:{color:"#6ec6ff"} };
+
+/* Inimigos compostos: principal → auxiliares (partes que o inimigo carrega) */
+const COMPOSITE = {
+  "enemy.colossus":    [{ key: "part.turret", qty: 2, note: "torres laterais" }],
+  "enemy.guardian":    [{ key: "part.sat", qty: 1, note: "satélite orbital" }],
+  "enemy.singularity": [{ key: "part.sat", qty: 3, note: "satélites orbitais" }],
+};
+
+const CATS = [
+  { id:"naves",    title:"Naves do jogador", desc:"Apontam para CIMA.", test:(k)=>k.startsWith("ship.") },
+  { id:"armas",    title:"Armas (projéteis do jogador)", desc:"Apontam para CIMA.", test:(k)=>k.startsWith("shot.") && !/enemy|emissile|micro/.test(k) },
+  { id:"icones",   title:"Ícones", desc:"Armas, módulos de suporte e ramos de melhoria (menu de construção).", test:(k)=>k.startsWith("icon.")||k.startsWith("branch.") },
+  { id:"inimigos", title:"Inimigos", desc:"Apontam para BAIXO. Inimigos compostos mostram o principal (borda amarela) e seus auxiliares.", test:(k)=>k.startsWith("enemy.")||k.startsWith("part.") },
+  { id:"tiros",    title:"Projéteis inimigos", desc:"", test:(k)=>/^shot\.(enemy|emissile|micro)/.test(k) },
+  { id:"outros",   title:"Suporte e coletáveis", desc:"Drones e itens que caem dos inimigos.", test:(k)=>k.startsWith("support.")||k.startsWith("pickup.") },
+];
+
+let ART = null;
+const FIT = 140;   // lado máximo (px) da área de exibição de cada sprite; a ampliação (até 5×) é calculada por sprite
+
+function drawSprite(def) {
+  const SC = Math.min(5, Math.max(0.5, FIT / Math.max(def.w, def.h)));
+  const cv = document.createElement("canvas");
+  cv.width = Math.ceil(def.w * SC * 2); cv.height = Math.ceil(def.h * SC * 2);
+  cv.style.width = Math.ceil(def.w * SC) + "px"; cv.style.height = Math.ceil(def.h * SC) + "px";
+  const c = cv.getContext("2d");
+  c.scale(SC * 2, SC * 2); c.translate(def.w / 2, def.h / 2);
+  try { def.draw(c); } catch (e) { c.fillStyle = "#f55"; c.fillRect(-4, -4, 8, 8); }
+  return cv;
+}
+
+function card(key, def, extra = "", main = false) {
+  const el = document.createElement("div");
+  el.className = "card" + (main ? " main" : "");
+  el.dataset.key = key;
+  const v = document.createElement("div"); v.className = "view"; v.appendChild(drawSprite(def));
+  const id = document.createElement("div"); id.className = "id"; id.textContent = key;
+  const m = document.createElement("div"); m.className = "meta";
+  m.innerHTML = `Máx.: <b>${+def.w.toFixed(2)} × ${+def.h.toFixed(2)}</b> px${extra}`;
+  el.append(v, id, m);
+  return el;
+}
+
+function build(text) {
+  const src = text
+    .replace(/^\s*import\s[^;]*;\s*$/gm, "")
+    .replace(/export\s+(const|function|class)/g, "$1");
+  const fn = new Function("IMAGE_OVERRIDES", "WEAPONS", "SUPPORTS", src + "\nreturn { ART };");
+  ART = fn({}, STUB_WEAPONS, STUB_SUPPORTS).ART;
+
+  const keys = Object.keys(ART);
+  const used = new Set();
+  const out = document.getElementById("out"), bar = document.getElementById("bar");
+  out.innerHTML = ""; bar.innerHTML = "";
+
+  const mk = (label, id) => { const b = document.createElement("button"); b.textContent = label; b.dataset.cat = id; b.onclick = () => filter(id); bar.appendChild(b); };
+  mk(`Tudo (${keys.length})`, "all");
+
+  const auxKeys = new Set(Object.values(COMPOSITE).flat().map((a) => a.key));
+  const auxOf = {};
+  for (const [main, list] of Object.entries(COMPOSITE)) for (const a of list) (auxOf[a.key] ??= []).push(main);
+
+  for (const cat of CATS) {
+    const list = keys.filter((k) => !used.has(k) && cat.test(k));
+    list.forEach((k) => used.add(k));
+    if (!list.length) continue;
+    const sec = document.createElement("section"); sec.dataset.cat = cat.id;
+    sec.innerHTML = `<h2>${cat.title} <span class="meta">(${list.length})</span></h2>${cat.desc ? `<p>${cat.desc}</p>` : ""}`;
+    mk(`${cat.title} (${list.length})`, cat.id);
+
+    if (cat.id === "inimigos") {
+      const grid = document.createElement("div"); grid.className = "grid";
+      // compostos: principal + auxiliares
+      const comp = list.filter((k) => COMPOSITE[k]);
+      for (const k of comp) {
+        const g = document.createElement("div"); g.className = "group"; g.style.gridColumn = "1 / -1";
+        g.innerHTML = `<h3>${k} — inimigo composto</h3>`;
+        const gg = document.createElement("div"); gg.className = "grid";
+        gg.appendChild(card(k, ART[k], ` <span class="tag p">principal</span>`, true));
+        for (const a of COMPOSITE[k]) if (ART[a.key]) gg.appendChild(card(a.key, ART[a.key], ` <span class="tag a">auxiliar ×${a.qty}</span><br>${a.note}`));
+        g.appendChild(gg); sec.appendChild(g);
+      }
+      // simples
+      const simple = list.filter((k) => !COMPOSITE[k] && !auxKeys.has(k));
+      for (const k of simple) grid.appendChild(card(k, ART[k]));
+      // auxiliares (também listados, indicando de quem são)
+      for (const k of list.filter((k) => auxKeys.has(k))) grid.appendChild(card(k, ART[k], ` <span class="tag a">auxiliar</span><br>de: ${auxOf[k].join(", ")}`));
+      const simpleTitle = document.createElement("p"); simpleTitle.textContent = "Inimigos simples e partes auxiliares:";
+      sec.append(simpleTitle, grid);
+    } else {
+      const grid = document.createElement("div"); grid.className = "grid";
+      for (const k of list) grid.appendChild(card(k, ART[k]));
+      sec.appendChild(grid);
+    }
+    out.appendChild(sec);
+  }
+  const rest = keys.filter((k) => !used.has(k));
+  if (rest.length) {
+    const sec = document.createElement("section"); sec.dataset.cat = "rest";
+    sec.innerHTML = `<h2>Sem categoria <span class="meta">(${rest.length})</span></h2>`;
+    const grid = document.createElement("div"); grid.className = "grid";
+    for (const k of rest) grid.appendChild(card(k, ART[k]));
+    sec.appendChild(grid); out.appendChild(sec); mk(`Sem categoria (${rest.length})`, "rest");
+  }
+  const s = document.createElement("input"); s.type = "search"; s.placeholder = "Filtrar por id…";
+  s.oninput = () => { const q = s.value.trim().toLowerCase(); document.querySelectorAll(".card").forEach((c) => c.classList.toggle("hide", !!q && !c.dataset.key.toLowerCase().includes(q))); };
+  bar.appendChild(s);
+  bar.classList.remove("hide");
+  filter("all");
+}
+
+function filter(id) {
+  document.querySelectorAll("#bar button").forEach((b) => b.classList.toggle("on", b.dataset.cat === id));
+  document.querySelectorAll("main > section").forEach((s) => s.classList.toggle("hide", id !== "all" && s.dataset.cat !== id));
+}
+
+const load = document.getElementById("load"), err = document.getElementById("err");
+function fromText(t) { try { build(t); load.classList.remove("show"); } catch (e) { load.classList.add("show"); err.textContent = "Erro ao ler o Art.js: " + e.message; } }
+document.getElementById("pick").onchange = (ev) => { const f = ev.target.files[0]; if (f) f.text().then(fromText); };
+fetch("./Art.js").then((r) => { if (!r.ok) throw new Error(r.status); return r.text(); }).then(fromText).catch(() => load.classList.add("show"));
+</script>
+</body>
+</html>
