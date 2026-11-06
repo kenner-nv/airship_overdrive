@@ -112,7 +112,7 @@ export const ENEMIES = {
     hp: 84, speed: 70, radius: 18, ramDamage: 22, score: 100, coins: 14,
     threat: 5, weight: 3, minWave: 28, maxWave: 43, intro: true, ranged: true, cap: 1, fire: [],
     evade: 300, enter: 2.2,
-    ability: "jammer", ap: { grow: 2.5, radius: 250, rest: 3.2, off: 2, dmg: 18 },
+    ability: "jammer", ap: { grow: 2.5, radius: 225, rest: 3.2, off: 2, dmg: 18 },
   },
   // onda 32 — substitui o Atirador de Feixe
   sweeper: {
@@ -120,7 +120,7 @@ export const ENEMIES = {
     hp: 96, speed: 70, radius: 22, ramDamage: 26, score: 120, coins: 18,
     threat: 6, weight: 3, minWave: 32, maxWave: 38, intro: true, ranged: true, group: "beam", heavy: true, holdY: [90, 190], fire: [],
     evade: 280, enter: 2.2,
-    ability: "sweeper", ap: { dmg: 22, width: 18, warn: 1.2, sweep: 2.2, arc: 70, cycle: 6 },
+    ability: "sweeper", ap: { dmg: 22, width: 18, warn: 1.2, sweep: 2.2, arc: 50, cycle: 6 },
   },
   // onda 34 — substitui o Lançador
   gravity: {
@@ -130,7 +130,7 @@ export const ENEMIES = {
     fire: [{ pattern: "aimed", interval: 2.2, count: 1, spreadDeg: 0, bulletSpeed: 230, damage: 12, telegraph: 0.35 }],
     // onda gravitacional (3 s, encolhe até ele) empurra a nave e desvia os tiros do jogador; depois 2 s de descanso: janela para acertá-lo
     evade: 260, enter: 2.2,
-    ability: "gravity", ap: { radius: 250, push: 90, wave: 3, rest: 2, deflect: 5 },
+    ability: "gravity", ap: { radius: 225, push: 90, wave: 3, rest: 2, deflect: 5 },
   },
   // onda 37 — substitui o Couraçado Explosivo
   guardian: {
@@ -185,7 +185,7 @@ export const ENEMIES = {
       { pattern: "ring", interval: 4.2, count: 14, bulletSpeed: 160, damage: 10, telegraph: 0.6 },
     ],
     ability: "colossus", ap: {
-      turretHp: 900, turretR: 21, turretX: 74, turretY: 8, shotDmg: 20, shotSpeed: 520, aim: 0.9, lock: 0.25, gap: 0.35, charge: 3.2,
+      turretHp: 800, turretR: 21, turretX: 74, turretY: 8, shotDmg: 20, shotSpeed: 520, aim: 0.9, lock: 0.25, gap: 0.35, charge: 3.2,
       pulseEvery: 4, pulseWarn: 0.9, pulseRadius: 250, pulseRadiusH: 0.5, off: 2, phase3: 0.3,
     },
   },
