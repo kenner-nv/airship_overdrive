@@ -57,5 +57,11 @@ e abra `/jogos/starship-overdrive/`. Com `?debug` na URL, `window.__game` fica d
 - Item de vida agora é um escudo verde.
 - Área de acerto dos tiros inimigos elíptica e mais larga (`Config.ship.hitWidthMul`).
 
+- Sugestão para futuras melhorias:
+- O lançador de mísseis (enemy.micro) atira 3 mísseis de uma vez (ao invés de 6) mas eles não podem ser destruídos com tiros. Faça a mesma alteração para o inimigo de elite hegemon.
+- O inimigo adaptador (enemy.adaptive) dispara um arco de 3 tiros ao invés de apenas um.
+- O efeito de arrastar inimigos para trás da arma míssil está com bugs, de forma que o inimigo da um "glitch" ao invés de ser afastado suavemente.
+- A partir da onda 50, todos os inimigos podem aparecer (retire restrições de onda) e em qualquer combinação (retire restrições de ameaças) e coloque um número crescente de inimigos permitidos simultâneamente a cada onda. 
+
 ## v0.5.2
 - Celular: a arena fica mais estreita (largura lógica = largura da tela ÷ `CONFIG.world.minScale`, entre `minWidth` 380 e `width` 540), então nave e inimigos aparecem ~30% maiores. Desktop continua em 540. O deslocamento do toque (`touchOffsetY`) é escalado para manter a mesma distância na tela.
